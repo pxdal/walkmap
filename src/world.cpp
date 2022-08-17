@@ -4,6 +4,30 @@
 
 #include <cctype>
 
+// object
+Object* createEmptyObject(){
+	Object* obj = allocateMemoryForType<Object>();
+	
+	obj->position = glm::vec3(0);
+	obj->rotation = glm::vec3(0);
+	obj->scale = glm::vec3(0);
+	
+	obj->bboxes = new std::vector<BoundingBox*>();
+	obj->reachable = false;
+	
+	return obj;
+}
+
+Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale){
+	Object* obj = createEmptyObject();
+	
+	obj->position = position;
+	obj->rotation = rotation;
+	obj->scale = scale;
+	
+	return obj;
+}
+
 // world
 
 // parser settings
@@ -30,7 +54,7 @@ bool objectBlockCharParser(void** block, char byte){
 		// point block to created textureBlock
 		*block = (void*)objectBlock;
 		
-		// because this should be created on the first byte, we can safely exit here to avoid the open bracket being included
+		// because this should be created on the first byte, we can safely exit here to avoid the blockOpen byte being included
 		return false;
 	}
 	
@@ -75,16 +99,16 @@ bool objectBlockCharParser(void** block, char byte){
 	return false;
 }
 
-void objectBlockToScene(void** block, std::vector<Object>* objects){
+void objectBlockToScene(void** block, std::vector<Object*>* objects){
 	// cast pointer to block type
 	ObjectBlock* objectBlock = (ObjectBlock*)(*block);
 	
-	// create new objects
-	Object object;
+	// create new object
+	Object* object = createEmptyObject();
 	
 	// load some float values
 	for(uint32_t i = 0; i < objectBlock->floats->size(); i++){
-		(&object.position[0])[i] = objectBlock->floats->at(i);
+		(&object->position[0])[i] = objectBlock->floats->at(i);
 	}
 	
 	// push to objects
@@ -105,7 +129,7 @@ void objectBlockToScene(void** block, std::vector<Object>* objects){
 }
 
 // parse world
-void parseWorld(const char* file, std::vector<Object>* objects){
+void parseWorld(const char* file, std::vector<Object*>* objects){
 	// file buffer
 	char* fileBuffer = read_entire_file(file);
 	
@@ -128,7 +152,7 @@ void parseWorld(const char* file, std::vector<Object>* objects){
 	// second param = char to parse
 	// returns false if the block hasn't finished parsing and true if it has
 	bool (*charParsers[1])(void**,char) {objectBlockCharParser};
-	void (*blockParsers[1])(void**,std::vector<Object>*) {objectBlockToScene};
+	void (*blockParsers[1])(void**,std::vector<Object*>*) {objectBlockToScene};
 	
 	// loop through each byte
 	char byte;

@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <cstdint>
+#include <cfloat>
 
 // allocate memory for a type and return the address for the allocated memory
 template <typename T>
@@ -20,5 +21,8 @@ template <typename T> int signum(T val) {
 
 // read the contents of a file and return a char buffer of the contents (free the buffer when done!)
 char* read_entire_file(const char* file);
+
+bool nearly_equal(float a, float b);
+bool nearly_less_or_eq(float a, float b);
 
 #endif

@@ -11,11 +11,18 @@
 
 // structs //
 
+// declare bounding box here so that we can use pointers to it
+struct BoundingBox;
+
 // object
 struct Object {
 	glm::vec3 position;
 	glm::vec3 rotation;
 	glm::vec3 scale;
+	
+	std::vector<BoundingBox*>* bboxes;
+	
+	bool reachable;
 };
 
 // world blocks (hold information about blocks)
@@ -40,6 +47,9 @@ struct ObjectBlock {
 
 
 // methods //
-void parseWorld(const char* file, std::vector<Object>* objects);
+Object* createEmptyObject();
+Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale);
+
+void parseWorld(const char* file, std::vector<Object*>* objects);
 
 #endif

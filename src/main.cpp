@@ -1,4 +1,4 @@
-// main file
+// main 
 
 #include <world.hpp>
 #include <walkmap.hpp>
@@ -25,8 +25,10 @@ int main(int argc, char** argv){
 	// get file path
 	const char* path = argv[1];
 	
+	printf("Parsing .world file...\n");
+	
 	// load world
-	std::vector<Object> objects;
+	std::vector<Object*> objects;
 	
 	parseWorld(path, &objects);
 	
@@ -37,14 +39,20 @@ int main(int argc, char** argv){
 	
 	settings.playerHeight = argc >= 3 ? std::stof(argv[2]) : 1.5f;
 	settings.playerRadius = argc >= 4 ? std::stof(argv[3]) : 0.25f;
-	settings.stepHeight = argc >= 5 ? std::stof(argv[4]) : 0.05f;
+	settings.stepHeight = argc >= 5 ? std::stof(argv[4]) : 0.1f;
+	
+	printf("Generating walkmap...\n");
 	
 	// generate walkmap
-	std::vector<BoundingBox> walkmap;
+	std::vector<BoundingBox*> walkmap;
 	
-	generateWalkmap(&objects, &walkmap);
+	generateWalkmap(settings, &objects, &walkmap);
 	
-	for(uint32_t i = 0; i < walkmap.size(); i++){
-		printf("\npos: %f, %f, %f\nsize: %f, %f\n", walkmap[i].position.x, walkmap[i].position.y, walkmap[i].position.z, walkmap[i].size.x, walkmap[i].size.y);
-	}
+	/*for(uint32_t i = 0; i < walkmap.size(); i++){
+		printf("\npos: %f, %f, %f\nsize: %f, %f\n", walkmap[i]->position.x, walkmap[i]->position.y, walkmap[i]->position.z, walkmap[i]->size.x, walkmap[i]->size.y);
+	}*/
+	
+	printf("Done.\n");
+	
+	return EXIT_SUCCESS;
 }
