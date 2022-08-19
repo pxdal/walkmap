@@ -262,6 +262,58 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 	pushBboxes(walkmapCopy[0], walkmap);
 }
 
+// convert walkmap (vector of BoundingBox*s) to a string to be written to a file
+void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap){
+	// .walkmap files are just .world files without anything extra
+	// the block syntax for walkmap boxes is as follows:
+	/*
+		~[x,y,z, w,d]
+	*/
+	
+	const char delimiter = '~';
+	const char parameterDelimiter = ',';
+	const char blockOpen = '[';
+	const char blockClose = ']';
+
+	// firstly, iterate through walkmap and assign each box an index (overriding the splitIndex value because I'm lazy)
+	// the walkmap uses indexes for adjacency information
+	for(uint32_t i = 0; i < walkmap->size(); i++){
+		walkmap->at(i)->splitIndex = i;
+	}
+	
+	for(uint32_t i = 0; i < walkmap->size(); i++){
+		// temp buffer for block
+		std::string blockBuffer;
+		
+		// add delimiter
+		blockBuffer += delimiter;
+		
+		// add block open
+		blockBuffer += blockOpen;
+		
+		// get box
+		BoundingBox* box = walkmap->at(i);
+		
+		// add floats to block buffer
+		for(uint32_t j = 0; j < 5; j++){
+			float f = (&box->position[0])[j];
+			
+			blockBuffer += std::to_string(f) + parameterDelimiter;
+		}
+		
+		// add adjacent boxes
+		for(uint32_t j = 0; j < box->adjacent->size(); j++){
+			blockBuffer += std::to_string(box->adjacent->at(j)->splitIndex) + parameterDelimiter;
+		}
+		
+		// add block close
+		blockBuffer += blockClose;
+		
+		// write to buffer
+		buffer += blockBuffer + '\n';
+	}
+}
+
 // create bounding box with 2d position
 BoundingBox* createBbox(glm::vec2 p, glm::vec2 s){
 	return createBbox(glm::vec3(p.x, 0, p.y), s);
@@ -438,45 +490,4 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 	
 	// done
 	return;
-}
-
-// convert walkmap (vector of BoundingBox*s) to a string to be written to a file
-void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap){
-	// .walkmap files are just .world files without anything extra
-	// the block syntax for walkmap boxes is as follows:
-	/*
-		~[x,y,z, w,d]
-	*/
-	
-	const char delimiter = '~';
-	const char parameterDelimiter = ',';
-	const char blockOpen = '[';
-	const char blockClose = ']';
-
-	for(uint32_t i = 0; i < walkmap->size(); i++){
-		// temp buffer for block
-		std::string blockBuffer;
-		
-		// add delimiter
-		blockBuffer += delimiter;
-		
-		// add block open
-		blockBuffer += blockOpen;
-		
-		// get box
-		BoundingBox* box = walkmap->at(i);
-		
-		// add floats to block buffer
-		for(uint32_t j = 0; j < 5; j++){
-			float f = (&box->position[0])[j];
-			
-			blockBuffer += std::to_string(f) + parameterDelimiter;
-		}
-		
-		// add block close
-		blockBuffer += blockClose;
-		
-		// write to buffer
-		buffer += blockBuffer + '\n';
-	}
 }
