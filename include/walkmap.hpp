@@ -38,6 +38,7 @@ struct BoundingBox {
 void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector<Object*>* scene, std::vector<uint32_t>* sortedByHeight, uint32_t heightIndex, WalkmapSettings& settings);
 void pushBboxes(BoundingBox* bbox, std::vector<BoundingBox*>* walkmap);
 void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, std::vector<BoundingBox*>* finalWalkmap);
+void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap);
 
 BoundingBox* createBbox(glm::vec2 p, glm::vec2 s);
 BoundingBox* createBbox(glm::vec3 p, glm::vec2 s);

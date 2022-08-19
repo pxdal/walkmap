@@ -5,7 +5,9 @@
 
 #include <cstdlib>
 #include <cstdio>
+
 #include <string>
+#include <fstream>
 
 int main(int argc, char** argv){
 	// set stdout buffer flushed without buffering, because line buffering doesn't work in msys2 terminal
@@ -16,8 +18,8 @@ int main(int argc, char** argv){
 	// parse arguments
 	
 	// should be at least one (the world file)
-	if(argc < 2){
-		printf("Error: Not enough arguments, requires at least 1 (.world file path)\n");
+	if(argc < 3){
+		printf("Error: Not enough arguments, requires at least 2 (.world file path, out path)\n");
 		
 		exit(EXIT_FAILURE);
 	}
@@ -37,9 +39,9 @@ int main(int argc, char** argv){
 	// load settings
 	WalkmapSettings settings;
 	
-	settings.playerHeight = argc >= 3 ? std::stof(argv[2]) : 1.5f;
-	settings.playerRadius = argc >= 4 ? std::stof(argv[3]) : 0.25f;
-	settings.stepHeight = argc >= 5 ? std::stof(argv[4]) : 0.1f;
+	settings.playerHeight = argc >= 4 ? std::stof(argv[3]) : 1.5f;
+	settings.playerRadius = argc >= 5 ? std::stof(argv[4]) : 0.25f;
+	settings.stepHeight = argc >= 6 ? std::stof(argv[5]) : 0.1f;
 	
 	printf("Generating walkmap...\n");
 	
@@ -48,15 +50,29 @@ int main(int argc, char** argv){
 	
 	generateWalkmap(settings, &objects, &walkmap);
 	
-	printf("Done.\n");
+	printf("Writing walkmap to file...\n");
 	
-	for(uint32_t i = 0; i < walkmap.size(); i++){
+	// open file
+	std::ofstream out;
+	out.open(argv[2]);
+	
+	// get buffer
+	std::string buffer;
+	
+	walkmapToBuffer(buffer, &walkmap);
+	
+	// pipe to file
+	out << buffer;
+	
+	out.close();
+	
+	/*for(uint32_t i = 0; i < walkmap.size(); i++){
 		if(walkmap[i] == NULL) continue;
 		
 		printf("(pos: %f, %f, %f, size: %f, %f)\n", walkmap[i]->position.x, walkmap[i]->position.y, walkmap[i]->position.z, walkmap[i]->size.x, walkmap[i]->size.y);
-	}
+	}*/
 	
-	
+	printf("Done.\n");
 	
 	return EXIT_SUCCESS;
 }

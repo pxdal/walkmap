@@ -439,3 +439,44 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 	// done
 	return;
 }
+
+// convert walkmap (vector of BoundingBox*s) to a string to be written to a file
+void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap){
+	// .walkmap files are just .world files without anything extra
+	// the block syntax for walkmap boxes is as follows:
+	/*
+		~[x,y,z, w,d]
+	*/
+	
+	const char delimiter = '~';
+	const char parameterDelimiter = ',';
+	const char blockOpen = '[';
+	const char blockClose = ']';
+
+	for(uint32_t i = 0; i < walkmap->size(); i++){
+		// temp buffer for block
+		std::string blockBuffer;
+		
+		// add delimiter
+		blockBuffer += delimiter;
+		
+		// add block open
+		blockBuffer += blockOpen;
+		
+		// get box
+		BoundingBox* box = walkmap->at(i);
+		
+		// add floats to block buffer
+		for(uint32_t j = 0; j < 5; j++){
+			float f = (&box->position[0])[j];
+			
+			blockBuffer += std::to_string(f) + parameterDelimiter;
+		}
+		
+		// add block close
+		blockBuffer += blockClose;
+		
+		// write to buffer
+		buffer += blockBuffer + '\n';
+	}
+}
