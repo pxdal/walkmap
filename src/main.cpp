@@ -48,11 +48,15 @@ int main(int argc, char** argv){
 	
 	generateWalkmap(settings, &objects, &walkmap);
 	
-	/*for(uint32_t i = 0; i < walkmap.size(); i++){
-		printf("\npos: %f, %f, %f\nsize: %f, %f\n", walkmap[i]->position.x, walkmap[i]->position.y, walkmap[i]->position.z, walkmap[i]->size.x, walkmap[i]->size.y);
-	}*/
-	
 	printf("Done.\n");
+	
+	for(uint32_t i = 0; i < walkmap.size(); i++){
+		if(walkmap[i] == NULL) continue;
+		
+		printf("(pos: %f, %f, %f, size: %f, %f)\n", walkmap[i]->position.x, walkmap[i]->position.y, walkmap[i]->position.z, walkmap[i]->size.x, walkmap[i]->size.y);
+	}
+	
+	
 	
 	return EXIT_SUCCESS;
 }

@@ -50,3 +50,7 @@ bool nearly_equal(float a, float b){
 bool nearly_less_or_eq(float a, float b){
 	return (a < b) || nearly_equal(a, b);
 }
+
+bool nearly_greater_or_eq(float a, float b){
+	return (a > b) || nearly_equal(a, b);
+}

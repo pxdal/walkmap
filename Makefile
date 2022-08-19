@@ -33,10 +33,9 @@ CFLAGS=-Werror -g
 .PHONY: all
 all: $(INSTALL_DIR)$(OUT)
 
-# install targets
+# install targets (add to /usr/local/bin)
 .PHONY: install
 install: all
-	# add to /usr/local/bin
 	@echo installing $(OUT) to $(PREFIX)$(INSTALL_DIR)
 	@install -d $(PREFIX)$(INSTALL_DIR)
 	@install -m 777 $(INSTALL_DIR)$(OUT) $(PREFIX)$(INSTALL_DIR)

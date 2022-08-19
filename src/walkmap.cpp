@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <ctgmath>
 
-// process a bbox in a walkmap
+// process an object into bboxes recursively
 void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector<Object*>* scene, std::vector<uint32_t>* sortedByHeight, uint32_t heightIndex, WalkmapSettings& settings){
 	// any new boxes created below get pushed to here and then pushed to bboxes at the end (to avoid screwing with the loop)
 	std::vector<BoundingBox*> newBboxes;
@@ -17,6 +17,9 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 	for(uint32_t i = 0; i < bboxes->size(); i++){
 		// get bbox
 		BoundingBox* bbox1 = bboxes->at(i);
+		
+		// ignore if null
+		if(bbox1 == NULL) continue;
 		
 		// loop through every object ahead of owner
 		for(uint32_t j = heightIndex; j < sortedByHeight->size(); j++){
@@ -44,15 +47,53 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			std::vector<BoundingBox*> splitBoxes;
 			splitBbox(&splitBoxes, bbox1, bbox2);
 			
+			
+			//printf("checking adjacency\n");
+			
 			// if the distance from each obj's top faces is <= the step height, mark all split bboxes as adjacent to bbox2 (to allow the player to step up to it)
+			//printf("%d: %f, %f, %d\n", sortedByHeight->at(j), bbox2->position.y - bbox1->position.y, settings.stepHeight, nearly_less_or_eq(bbox2->position.y - bbox1->position.y, settings.stepHeight));
 			if( nearly_less_or_eq(bbox2->position.y - bbox1->position.y, settings.stepHeight) ){
 				for(uint32_t k = 0; k < splitBoxes.size(); k++){
-					markAdjacent(splitBoxes.at(k), bbox2);
+					if(splitBoxes.at(k) != NULL) markAdjacent(splitBoxes.at(k), bbox2);
 				}
 				
 				// mark object as reachable (can be reached from this object)
 				obj2->reachable = true;
 			}
+			
+			//printf("updating adjacency\n");
+			
+			// if bbox1 had any adjacent boxes, update those boxes' adjacency
+			for(uint32_t k = 0; k < bbox1->adjacent->size(); k++){
+				// get adjacent bbox
+				BoundingBox* adjacentBbox = bbox1->adjacent->at(k);
+				
+				// remove bbox1 from adjacentBbox's adjacent vector
+				// FIXME: if std::find fails, this will probably seg fault (but std::find shouldn't fail here)
+				adjacentBbox->adjacent->erase( std::find(adjacentBbox->adjacent->begin(), adjacentBbox->adjacent->end(), bbox1) );
+				
+				// add adjacent boxes
+				// FIXME: might be able to be made more efficient via splitIndex
+				
+				for(uint32_t m = 0; m < splitBoxes.size(); m++){
+					if(splitBoxes.at(m) == NULL) continue;
+					
+					if(bboxIntersection(splitBoxes.at(m), adjacentBbox)) markAdjacent(adjacentBbox, splitBoxes.at(m));
+				}
+				
+				/*if(adjacentBbox->splitIndex != -1){
+					for(int32_t m = 0; m < 1; m++){
+						BoundingBox* other = splitBoxes.at( adjacentBbox->splitIndex+m );
+						
+						if(other != NULL){ markAdjacent(adjacentBbox, other); }
+					}
+				}*/
+			}
+			
+			//printf("processing new bboxes\n");
+			
+			// destroy bbox1
+			destroyBbox(bbox1);
 			
 			// process new bboxes
 			j++; // increment j to ignore the object we just went over
@@ -60,9 +101,6 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			
 			// push new boxes to newBboxes
 			newBboxes.insert(newBboxes.end(), splitBoxes.begin(), splitBoxes.end());
-			
-			// destroy bbox1
-			destroyBbox(bbox1);
 			
 			// we break here because we don't need to check any more objects with bbox1; the bboxes from the split check the rest
 			break;
@@ -73,8 +111,33 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 	bboxes->insert(bboxes->end(), newBboxes.begin(), newBboxes.end());
 }
 
+// push bboxes to a walkmap
+void pushBboxes(BoundingBox* bbox, std::vector<BoundingBox*>* walkmap){
+	// ignore null
+	if(bbox == NULL) return;
+	
+	// if this bbox has already been reached, ignore
+	if( std::find(walkmap->begin(), walkmap->end(), bbox) != walkmap->end() ) return;
+	
+	// push bbox to walkmap
+	walkmap->push_back(bbox);
+	
+	// check for null adjacent
+	if(bbox->adjacent == NULL) return;
+	
+	// iterate through adjacent boxes and push them to walkmap
+	for(uint32_t i = 0; i < bbox->adjacent->size(); i++){
+		pushBboxes(bbox->adjacent->at(i), walkmap);
+	}
+	
+	// done
+}
+
 // generate walkmap from vector of objects into a vector of bounding boxes
 void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, std::vector<BoundingBox*>* walkmap){
+	// copy of walkmap to write to
+	std::vector<BoundingBox*> walkmapCopy;
+	
 	// the vectors below store indexes to the objects vector, indicating information about the object at that index
 	
 	// each object sorted by least to greatest y value
@@ -140,18 +203,21 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 		sortedByHeight.insert(sortedByHeight.begin()+index, i);
 	}
 	
-	//printf(" - Sorting objects by intersections...\n");
-	printf(" - Calculating walkable space...\n");
+	// print sorted
+	/*for(uint32_t i = 0; i < sortedByHeight.size(); i++){
+		printf("%d, ", sortedByHeight[i]);
+	}
+	
+	printf("\n");
+	*/
 	
 	// calculate walkable space
+	printf(" - Calculating walkable space...\n");
+	
+	// loop through each object and call process
 	for(uint32_t i = 0; i < sortedByHeight.size(); i++){
 		// get this object
 		Object* obj1 = objects->at(sortedByHeight[i]);
-		
-		// if this isn't element 0 and the object is unreachable, don't bother
-		if(!obj1->reachable && i != 0){
-			continue;
-		}
 		
 		// create a bounding box for this object if necessary
 		if(obj1->bboxes->size() <= 0){
@@ -163,81 +229,37 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 		if(i+1 < sortedByHeight.size()) processObject(obj1, obj1->bboxes, objects, &sortedByHeight, i+1, settings);
 		
 		// print
-		printf("bboxes for object %d (%f, %f, %f):\n", sortedByHeight[i], obj1->position.x, obj1->position.y, obj1->position.z);
+		/*printf("bboxes for object %d (%f, %f, %f):\n", sortedByHeight[i], obj1->position.x, obj1->position.y, obj1->position.z);
 		
 		for(uint32_t i = 0; i < obj1->bboxes->size(); i++){
 			BoundingBox* box = obj1->bboxes->at(i);
 			
-			printf("%d: pos: %f, %f, %f, size: %f, %f\n", i+1, box->position.x, box->position.y, box->position.z, box->size.x, box->size.y);
+			//if(box == NULL) continue;
+			if(box == NULL){ printf("NULL box\n"); continue; }
+			
+			printf("%d: pos: %f, %f, %f, size: %f, %f, numAdjacent: %d\n", i+1, box->position.x, box->position.y, box->position.z, box->size.x, box->size.y, box->adjacent->size());
 		}
 		
-		printf("\n");
+		printf("\n");*/
+		
 		
 		// write all of the boxes to the walkmap
-		walkmap->insert(walkmap->end(), obj1->bboxes->begin(), obj1->bboxes->end());
+		walkmapCopy.insert(walkmapCopy.end(), obj1->bboxes->begin(), obj1->bboxes->end());
 	}
 	
-	// sort objects by intersections
-	/*for(uint32_t i = 0; i < sortedByHeight.size(); i++){
-		// create collision group
-		std::vector<uint32_t> collisionGroup;
-		
-		// get this object
-		Object& obj1 = objects->at(sortedByHeight[i]);
-		
-		// loop through every object ahead of this one in height
-		for(uint32_t j = i+1; j < sortedByHeight.size(); j++){
-			Object& obj2 = objects->at(sortedByHeight[j]);
-			
-			// ignore potential intersection if the distance from the bottom face of obj2 and the top face of obj1 exceeds the player height (then obj2 has no effect on obj1's walkable space
-			if( (obj2.position.y-obj2.scale.y/2.f) - (obj1.position.y+obj1.scale.y/2.f) >= settings.playerHeight ) continue;
-			
-			glm::vec2 posi = glm::vec2(obj1.position.x, obj1.position.z);
-			glm::vec2 sizi = glm::vec2(obj1.scale.x, obj1.scale.z) + glm::vec2(settings.playerRadius); // add player radius to account for objects slightly outside of surface area, but that could still have an effect on walkable space because of the size of the user
-			glm::vec2 posj = glm::vec2(obj2.position.x, obj2.position.z);
-			glm::vec2 sizj = glm::vec2(obj2.scale.x, obj2.scale.z) + glm::vec2(settings.playerRadius); // ditto
-			
-			// check for intersection (excluding y axis)
-			if(bboxIntersection( posi, sizi, posj, sizj )){
-				collisionGroup.push_back(sortedByHeight[j]);
-			}
+	// strip null boxes
+	for(uint32_t i = 0; i < walkmapCopy.size(); i++){
+		if(walkmapCopy.at(i) == NULL){
+			walkmapCopy.erase( walkmapCopy.begin()+i );
+			i--;
 		}
-		
-		// write collision group to collision groups
-		collisionGroups[sortedByHeight[i]] = collisionGroup;
-	}*/
-	
-	// print collision groups
-	/*for(uint32_t i = 0; i < collisionGroups.size(); i++){
-		printf("group %d: ", i);
-		
-		for(uint32_t j = 0; j < collisionGroups[i].size(); j++){
-			printf("%d, ", collisionGroups[i][j]);
-		}
-		
-		printf("\n");
 	}
 	
-	printf(" - Calculating walkable space...\n");
+	// eliminate unreachable boxes
+	printf(" - Eliminating unreachable boxes...\n");
 	
-	// starting from the lowest object, determine walkable space
-	for(uint32_t i = 0; i < sortedByHeight.size(); i++){
-		// get index of main object
-		uint32_t index = sortedByHeight[i];
-		
-		// get main object
-		Object& main = objects->at(index);
-		
-		// loop through every object intersecting with this one
-		std::vector<uint32_t>& intersections = collisionGroups[i];
-		
-		for(uint32_t j = 0; j < intersections.size(); j++){
-			// get intersecting object
-			Object& intersect = objects->at(intersections[j]);
-			
-			// 
-		}
-	}*/
+	// recurse through all bboxes indirectly adjacent to the first one
+	pushBboxes(walkmapCopy[0], walkmap);
 }
 
 // create bounding box with 2d position
@@ -265,7 +287,13 @@ BoundingBox* createBbox(glm::vec3 p, glm::vec2 s){
 	
 	box->adjacent = new std::vector<BoundingBox*>();
 	
+	box->splitIndex = -1;
+	
 	return box;
+}
+
+BoundingBox* createBbox(BoundingBox* original){
+	return createBbox(original->position, original->size);
 }
 
 BoundingBox* objToBbox(Object* obj){
@@ -281,10 +309,14 @@ void destroyBbox(BoundingBox* b){
 // FIXME: doesn't account for rotation
 bool bboxIntersection(glm::vec2 p1, glm::vec2 s1, glm::vec2 p2, glm::vec2 s2){
 	return (
-		p1.x+s1.x/2.f >= p2.x-s2.x/2.f &&
+		/*p1.x+s1.x/2.f >= p2.x-s2.x/2.f &&
 		p1.y+s1.y/2.f >= p2.y-s2.y/2.f &&
 		p2.x+s2.x/2.f >= p1.x-s1.x/2.f &&
-		p2.y+s2.y/2.f >= p1.y-s1.y/2.f
+		p2.y+s2.y/2.f >= p1.y-s1.y/2.f*/
+		nearly_greater_or_eq(p1.x+s1.x/2.f, p2.x-s2.x/2.f) &&
+		nearly_greater_or_eq(p1.y+s1.y/2.f, p2.y-s2.y/2.f) &&
+		nearly_greater_or_eq(p2.x+s2.x/2.f, p1.x-s1.x/2.f) &&
+		nearly_greater_or_eq(p2.y+s2.y/2.f, p1.y-s1.y/2.f)
 	);
 }
 
@@ -298,23 +330,45 @@ void markAdjacent(BoundingBox* b1, BoundingBox* b2){
 }
 
 // splits an AABB into multiple AABBs around a splitter AABB
-// returns 1-4 AABBs
+// newBoxes will always have either 1 value (if the original is returned) or 4 values, some of which may be NULL
 void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, BoundingBox* splitter){
 	// if boxes are not intersecting, return original
 	if(!bboxIntersection(original, splitter)){
-		*newBoxes = {original};
+		*newBoxes = {createBbox(original)};
 		return;
 	}
+	
+	/*
+	var w1 = n_UR.x - og_UL.x;
+	var h1 = n_UR.y - og_UL.y;
+	
+	var box1 = createBox(Math.min(og_UL.x + w1/2, og.x), og_UL.y + h1/2, w1, h1);
+	
+	var w2 = og_UR.x - n_BR.x;
+	var h2 = n_BR.y - og_UR.y;
+	
+	var box2 = createBox(n_UR.x + w2/2, Math.min(og_UR.y + h2/2, og.y), w2, h2);
+	
+	var w3 = og_BR.x - n_BL.x;
+	var h3 = og_BR.y - n_BL.y;
+	
+	var box3 = createBox(Math.max(n_BL.x + w3/2, og.x), n_BL.y + h3/2, w3, h3);
+	
+	var w4 = n_UL.x - og_BL.x;
+	var h4 = og_BL.y - n_UL.y;
+	
+	var box4 = createBox(Math.min(og_BL.x + w4/2, og.x), Math.max(n_UL.y + h4/2, og.y), w4, h4);
+	*/
 	
 	// box1
 	glm::vec2 s1 = splitter->UR - original->UL;
 	glm::vec2 p1 = original->UL + s1/2.f;
 	
-	BoundingBox* box1 = createBbox(glm::vec3(p1.x, original->position.y, p1.y), s1);
+	BoundingBox* box1 = createBbox(glm::vec3( std::min(p1.x, original->position.x), original->position.y, p1.y), s1);
 	
 	// box2
 	glm::vec2 s2 = glm::vec2(original->UR.x - splitter->BR.x, splitter->BR.y - original->UR.y);
-	glm::vec2 p2 = glm::vec2(splitter->UR.x + s2.x/2.f, std::min(original->UR.y + s2.y/2.f, original->position.y));
+	glm::vec2 p2 = glm::vec2(splitter->UR.x + s2.x/2.f, std::min(original->UR.y + s2.y/2.f, original->position.z));
 	
 	BoundingBox* box2 = createBbox(glm::vec3(p2.x, original->position.y, p2.y), s2);
 	
@@ -328,7 +382,7 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 	
 	// box4
 	glm::vec2 s4 = glm::vec2(splitter->UL.x - original->BL.x, original->BL.y - splitter->UL.y);
-	glm::vec2 p4 = glm::vec2(std::min(original->BL.x + s4.x/2.f, original->position.x), std::max(splitter->UL.y + s4.y/2.f, original->position.y));
+	glm::vec2 p4 = glm::vec2(std::min(original->BL.x + s4.x/2.f, original->position.x), std::max(splitter->UL.y + s4.y/2.f, original->position.z));
 	
 	BoundingBox* box4 = createBbox(glm::vec3(p4.x, original->position.y, p4.y), s4);
 	
@@ -341,19 +395,18 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 		
 		// check for negative w/h
 		if(box->size.x <= 0 || box->size.y <= 0){
-			//printf("box %d bad: ", i);
-			//printf("pos: %f, %f, %f, size: %f, %f\n", box->position.x, box->position.y, box->position.z, box->size.x, box->size.y);
-			
 			// delete box
 			destroyBbox(box);
 			
 			// remove box (kinda)
-			(*newBoxes)[i] = NULL;
+			newBoxes->at(i) = NULL;
 			
 			// prevent skipping
 			//i--;
 			continue;
 		}
+		
+		box->splitIndex = i;
 		
 		// correct large sizes
 		box->size.x = std::min(original->size.x, box->size.x);
@@ -374,14 +427,14 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 	}
 	
 	// remove null boxes
-	for(uint32_t i = 0; i < newBoxes->size(); i++){
+	/*for(uint32_t i = 0; i < newBoxes->size(); i++){
 		BoundingBox* box = newBoxes->at(i);
 		
 		if(!box){
 			newBoxes->erase(newBoxes->begin() + i);
 			i--;
 		}
-	}
+	}*/
 	
 	// done
 	return;
