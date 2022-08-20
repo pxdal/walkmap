@@ -21,6 +21,8 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 		// ignore if null
 		if(bbox1 == NULL) continue;
 		
+		printf("sdp: (p: %f, %f, %f, s: %f, %f)\n", bbox1->position.x, bbox1->position.y, bbox1->position.z, bbox1->size.x, bbox1->size.y);
+		
 		// loop through every object ahead of owner
 		for(uint32_t j = heightIndex; j < sortedByHeight->size(); j++){
 			// get object
@@ -38,7 +40,9 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			BoundingBox* bbox2 = obj2->bboxes->at(0);
 			
 			// check for intersection
+			printf("bbox2: (p: %f, %f, %f, s: %f, %f)\n", bbox2->position.x, bbox2->position.y, bbox2->position.z, bbox2->size.x, bbox2->size.y);
 			if(!bboxIntersection(bbox1, bbox2)) continue;
+			printf("got intersect\n");
 			
 			// remove bbox1 from boxes (replaced by splitBoxes)
 			bboxes->erase(bboxes->begin() + i);
@@ -46,7 +50,6 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			// split bbox
 			std::vector<BoundingBox*> splitBoxes;
 			splitBbox(&splitBoxes, bbox1, bbox2);
-			
 			
 			//printf("checking adjacency\n");
 			
@@ -204,12 +207,13 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 	}
 	
 	// print sorted
-	/*for(uint32_t i = 0; i < sortedByHeight.size(); i++){
+	
+	for(uint32_t i = 0; i < sortedByHeight.size(); i++){
 		printf("%d, ", sortedByHeight[i]);
 	}
 	
 	printf("\n");
-	*/
+	
 	
 	// calculate walkable space
 	printf(" - Calculating walkable space...\n");
@@ -263,7 +267,7 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 }
 
 // convert walkmap (vector of BoundingBox*s) to a string to be written to a file
-void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap){
+void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, WalkmapSettings& settings){
 	// .walkmap files are just .world files without anything extra
 	// the block syntax for walkmap boxes is as follows:
 	/*
@@ -271,11 +275,25 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap){
 	*/
 	
 	const char delimiter = '~';
+	const char settingsDelimiter = '@';
 	const char parameterDelimiter = ',';
 	const char blockOpen = '[';
 	const char blockClose = ']';
 
-	// firstly, iterate through walkmap and assign each box an index (overriding the splitIndex value because I'm lazy)
+	// write settings to buffer
+	uint32_t numSettings = 4;
+	
+	buffer += settingsDelimiter;
+	buffer += blockOpen;
+	
+	for(uint32_t i = 0; i < numSettings; i++){
+		buffer += std::to_string( (&settings.playerHeight)[i] ) + ",";
+	}
+	
+	buffer += blockClose;
+	buffer += '\n';
+	
+	// next iterate through walkmap and assign each box an index (overriding the splitIndex value because I'm lazy)
 	// the walkmap uses indexes for adjacency information
 	for(uint32_t i = 0; i < walkmap->size(); i++){
 		walkmap->at(i)->splitIndex = i;
@@ -314,6 +332,54 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap){
 	}
 }
 
+void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, WalkmapSettings& settings){
+	const char delimiter = '$';
+	const char settingsDelimiter = '@';
+	const char parameterDelimiter = ',';
+	const char blockOpen = '[';
+	const char blockClose = ']';
+
+	// iterate through walkmap and assign each box an index (overriding the splitIndex value because I'm lazy)
+	// the walkmap uses indexes for adjacency information
+	for(uint32_t i = 0; i < walkmap->size(); i++){
+		walkmap->at(i)->splitIndex = i;
+	}
+	
+	buffer = "# texture initialization blocks\n\n%[./res/textures/test/grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n";
+
+	for(uint32_t i = 0; i < walkmap->size(); i++){
+		// temp buffer for block
+		std::string blockBuffer;
+		
+		// add delimiter
+		blockBuffer += delimiter;
+		
+		// add block open
+		blockBuffer += blockOpen;
+		
+		// get box
+		BoundingBox* box = walkmap->at(i);
+		
+		// add floats to block buffer
+		for(uint32_t j = 0; j < 3; j++){
+			float f = (&box->position[0])[j];
+			
+			blockBuffer += std::to_string(f) + parameterDelimiter;
+		}
+		
+		// add zero for rotation
+		blockBuffer += "0,0,0,";
+		
+		blockBuffer += std::to_string(box->size.x) + ",0," + std::to_string(box->size.y) + ",default,cube";
+		
+		// add block close
+		blockBuffer += blockClose;
+		
+		// write to buffer
+		buffer += blockBuffer + '\n';
+	}
+}
+
 // create bounding box with 2d position
 BoundingBox* createBbox(glm::vec2 p, glm::vec2 s){
 	return createBbox(glm::vec3(p.x, 0, p.y), s);
@@ -321,21 +387,12 @@ BoundingBox* createBbox(glm::vec2 p, glm::vec2 s){
 
 // create bounding box with 3d position
 BoundingBox* createBbox(glm::vec3 p, glm::vec2 s){
-	// create 2d corners
-	glm::vec2 UL = glm::vec2( (p.x-s.x/2.f), (p.z-s.y/2.f) );
-	glm::vec2 UR = glm::vec2( (p.x+s.x/2.f), (p.z-s.y/2.f) );
-	glm::vec2 BL = glm::vec2( (p.x-s.x/2.f), (p.z+s.y/2.f) );
-	glm::vec2 BR = glm::vec2( (p.x+s.x/2.f), (p.z+s.y/2.f) );
-	
 	// allocate space for box
 	BoundingBox* box = allocateMemoryForType<BoundingBox>();
 	box->position = p;
 	box->size = s;
 	
-	box->UL = UL;
-	box->UR = UR;
-	box->BL = BL;
-	box->BR = BR;
+	generateBboxCorners(box);
 	
 	box->adjacent = new std::vector<BoundingBox*>();
 	
@@ -350,6 +407,19 @@ BoundingBox* createBbox(BoundingBox* original){
 
 BoundingBox* objToBbox(Object* obj){
 	return createBbox( glm::vec3(obj->position.x, obj->position.y + obj->scale.y/2.f, obj->position.z), glm::vec2(obj->scale.x, obj->scale.z) );
+}
+
+void generateBboxCorners(BoundingBox* box){
+	// create 2d corners
+	glm::vec2 UL = glm::vec2( (box->position.x-box->size.x/2.f), (box->position.z-box->size.y/2.f) );
+	glm::vec2 UR = glm::vec2( (box->position.x+box->size.x/2.f), (box->position.z-box->size.y/2.f) );
+	glm::vec2 BL = glm::vec2( (box->position.x-box->size.x/2.f), (box->position.z+box->size.y/2.f) );
+	glm::vec2 BR = glm::vec2( (box->position.x+box->size.x/2.f), (box->position.z+box->size.y/2.f) );
+	
+	box->UL = UL;
+	box->UR = UR;
+	box->BL = BL;
+	box->BR = BR;
 }
 
 void destroyBbox(BoundingBox* b){
@@ -390,39 +460,45 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 		return;
 	}
 	
+	//printf("original: UL: %f, %f, UR: %f, %f, BL: %f, %f, BR: %f, %f\n", original->UL.x, original->UL.y, original->UR.x, original->UR.y, original->BL.x, original->BL.y, original->BR.x, original->BR.y);
+	//printf("splitter: UL: %f, %f, UR: %f, %f, BL: %f, %f, BR: %f, %f\n", splitter->UL.x, splitter->UL.y, splitter->UR.x, splitter->UR.y, splitter->BL.x, splitter->BL.y, splitter->BR.x, splitter->BR.y);
+	
 	/*
 	var w1 = n_UR.x - og_UL.x;
 	var h1 = n_UR.y - og_UL.y;
 	
 	var box1 = createBox(Math.min(og_UL.x + w1/2, og.x), og_UL.y + h1/2, w1, h1);
-	
-	var w2 = og_UR.x - n_BR.x;
-	var h2 = n_BR.y - og_UR.y;
-	
-	var box2 = createBox(n_UR.x + w2/2, Math.min(og_UR.y + h2/2, og.y), w2, h2);
-	
-	var w3 = og_BR.x - n_BL.x;
-	var h3 = og_BR.y - n_BL.y;
-	
-	var box3 = createBox(Math.max(n_BL.x + w3/2, og.x), n_BL.y + h3/2, w3, h3);
-	
-	var w4 = n_UL.x - og_BL.x;
-	var h4 = og_BL.y - n_UL.y;
-	
-	var box4 = createBox(Math.min(og_BL.x + w4/2, og.x), Math.max(n_UL.y + h4/2, og.y), w4, h4);
 	*/
 	
 	// box1
 	glm::vec2 s1 = splitter->UR - original->UL;
 	glm::vec2 p1 = original->UL + s1/2.f;
 	
-	BoundingBox* box1 = createBbox(glm::vec3( std::min(p1.x, original->position.x), original->position.y, p1.y), s1);
+	p1.x = std::min(p1.x, original->position.x);
+	
+	BoundingBox* box1 = createBbox(glm::vec3( p1.x, original->position.y, p1.y), s1);
+	
+	/*
+	var w2 = og_UR.x - n_BR.x;
+	var h2 = n_BR.y - og_UR.y;
+	
+	var box2 = createBox(n_UR.x + w2/2, Math.min(og_UR.y + h2/2, og.y), w2, h2);
+	*/
 	
 	// box2
 	glm::vec2 s2 = glm::vec2(original->UR.x - splitter->BR.x, splitter->BR.y - original->UR.y);
-	glm::vec2 p2 = glm::vec2(splitter->UR.x + s2.x/2.f, std::min(original->UR.y + s2.y/2.f, original->position.z));
+	glm::vec2 p2 = glm::vec2(splitter->UR.x + s2.x/2.f, original->UR.y + s2.y/2.f);
+	
+	p2.y = std::min(p2.y, original->position.z);
 	
 	BoundingBox* box2 = createBbox(glm::vec3(p2.x, original->position.y, p2.y), s2);
+	
+	/*
+	var w3 = og_BR.x - n_BL.x;
+	var h3 = og_BR.y - n_BL.y;
+	
+	var box3 = createBox(Math.max(n_BL.x + w3/2, og.x), n_BL.y + h3/2, w3, h3);
+	*/
 	
 	// box3
 	glm::vec2 s3 = original->BR - splitter->BL;
@@ -432,9 +508,19 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 	
 	BoundingBox* box3 = createBbox(glm::vec3(p3.x, original->position.y, p3.y), s3);
 	
+	/*
+	var w4 = n_UL.x - og_BL.x;
+	var h4 = og_BL.y - n_UL.y;
+	
+	var box4 = createBox(Math.min(og_BL.x + w4/2, og.x), Math.max(n_UL.y + h4/2, og.y), w4, h4);
+	*/
+	
 	// box4
 	glm::vec2 s4 = glm::vec2(splitter->UL.x - original->BL.x, original->BL.y - splitter->UL.y);
-	glm::vec2 p4 = glm::vec2(std::min(original->BL.x + s4.x/2.f, original->position.x), std::max(splitter->UL.y + s4.y/2.f, original->position.z));
+	glm::vec2 p4 = glm::vec2(original->BL.x + s4.x/2.f, splitter->UL.y + s4.y/2.f);
+	
+	p4.x = std::min(p4.x, original->position.x);
+	p4.y = std::max(p4.y, original->position.z);
 	
 	BoundingBox* box4 = createBbox(glm::vec3(p4.x, original->position.y, p4.y), s4);
 	
@@ -463,6 +549,8 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 		// correct large sizes
 		box->size.x = std::min(original->size.x, box->size.x);
 		box->size.y = std::min(original->size.y, box->size.y);
+		
+		generateBboxCorners(box);
 	}
 	
 	// FIXME: find a better way to do adjacency

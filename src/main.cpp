@@ -39,9 +39,10 @@ int main(int argc, char** argv){
 	// load settings
 	WalkmapSettings settings;
 	
-	settings.playerHeight = argc >= 4 ? std::stof(argv[3]) : 1.5f;
-	settings.playerRadius = argc >= 5 ? std::stof(argv[4]) : 0.25f;
-	settings.stepHeight = argc >= 6 ? std::stof(argv[5]) : 0.1f;
+	settings.playerHeight = argc >= 4 ? std::stof(argv[3]) : 2.f;
+	settings.playerRadius = argc >= 5 ? std::stof(argv[4]) : 0.5f;
+	settings.stepHeight = argc >= 6 ? std::stof(argv[5]) : 0.4f;
+	settings.maxPlayerSpeed = argc >= 7 ? std::stof(argv[6]) : 2.f;
 	
 	printf("Generating walkmap...\n");
 	
@@ -58,19 +59,21 @@ int main(int argc, char** argv){
 	
 	// get buffer
 	std::string buffer;
+	std::string otherBuffer;
 	
-	walkmapToBuffer(buffer, &walkmap);
+	walkmapToBuffer(buffer, &walkmap, settings);
+	walkmapToWorld(otherBuffer, &walkmap, settings);
 	
 	// pipe to file
 	out << buffer;
 	
 	out.close();
 	
-	/*for(uint32_t i = 0; i < walkmap.size(); i++){
-		if(walkmap[i] == NULL) continue;
-		
-		printf("(pos: %f, %f, %f, size: %f, %f)\n", walkmap[i]->position.x, walkmap[i]->position.y, walkmap[i]->position.z, walkmap[i]->size.x, walkmap[i]->size.y);
-	}*/
+	out.open( (std::string(argv[2]) + ".world").c_str() );
+	
+	out << otherBuffer;
+	
+	out.close();
 	
 	printf("Done.\n");
 	
