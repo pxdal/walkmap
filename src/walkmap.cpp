@@ -21,7 +21,7 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 		// ignore if null
 		if(bbox1 == NULL) continue;
 		
-		printf("sdp: (p: %f, %f, %f, s: %f, %f)\n", bbox1->position.x, bbox1->position.y, bbox1->position.z, bbox1->size.x, bbox1->size.y);
+		//printf("sdp: (p: %f, %f, %f, s: %f, %f)\n", bbox1->position.x, bbox1->position.y, bbox1->position.z, bbox1->size.x, bbox1->size.y);
 		
 		// loop through every object ahead of owner
 		for(uint32_t j = heightIndex; j < sortedByHeight->size(); j++){
@@ -40,9 +40,9 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			BoundingBox* bbox2 = obj2->bboxes->at(0);
 			
 			// check for intersection
-			printf("bbox2: (p: %f, %f, %f, s: %f, %f)\n", bbox2->position.x, bbox2->position.y, bbox2->position.z, bbox2->size.x, bbox2->size.y);
+			//printf("bbox2: (p: %f, %f, %f, s: %f, %f)\n", bbox2->position.x, bbox2->position.y, bbox2->position.z, bbox2->size.x, bbox2->size.y);
 			if(!bboxIntersection(bbox1, bbox2)) continue;
-			printf("got intersect\n");
+			//printf("got intersect\n");
 			
 			// remove bbox1 from boxes (replaced by splitBoxes)
 			bboxes->erase(bboxes->begin() + i);
@@ -209,12 +209,13 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 	
 	// print sorted
 	
+	/*
 	for(uint32_t i = 0; i < sortedByHeight.size(); i++){
 		printf("%d, ", sortedByHeight[i]);
 	}
 	
 	printf("\n");
-	
+	*/
 	
 	// calculate walkable space
 	printf(" - Calculating walkable space...\n");
