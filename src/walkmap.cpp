@@ -46,6 +46,7 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			
 			// remove bbox1 from boxes (replaced by splitBoxes)
 			bboxes->erase(bboxes->begin() + i);
+			i--;
 			
 			// split bbox
 			std::vector<BoundingBox*> splitBoxes;
