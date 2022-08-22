@@ -51,6 +51,9 @@ void destroyBbox(BoundingBox* b);
 bool bboxIntersection(glm::vec2 p1, glm::vec2 s1, glm::vec2 p2, glm::vec2 s2);
 bool bboxIntersection(BoundingBox* b1, BoundingBox* b2);
 void markAdjacent(BoundingBox* b1, BoundingBox* b2);
+void moveBbox(BoundingBox* original, glm::vec3 newPosition);
+void resizeBbox(BoundingBox* original, glm::vec2 newSize);
+void moveAndResizeBbox(BoundingBox* original, glm::vec3 newPosition, glm::vec2 newSize);
 void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, BoundingBox* splitter);
 
 #endif

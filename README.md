@@ -4,11 +4,11 @@ tool for generating "walkmaps", or a group of bounding boxes indicating walkable
 
 ## Why use a walkmap?
 
-The main advantage of using a generated walkmap over using the bounding boxes of the original objects to determine walkable space is that it reduces the amount of bounding boxes which need to be checked in a single frame to determine where the user is, by only generating bounding boxes for space which can be reached by the player and storing which bounding boxes are adjacent to each other.
+The main advantage of using a generated walkmap over using the bounding boxes of the original objects to determine walkable space is that it reduces the amount of bounding boxes which need to be checked in a single frame to determine where the user is by only generating bounding boxes for space which can be reached by the player and storing which bounding boxes are adjacent to each other.
 
 ## Building
 
-At the moment all that is available is a Makefile created to be executed in MSYS, but because this doesn't rely on any libraries it should cross compile easily.  The targets are:
+At the moment all that is available is a Makefile created to be executed in MSYS, but this doesn't rely on any libraries so it should cross compile easily.  The targets are:
 
 `make` (builds walkmap to ./bin/)
 

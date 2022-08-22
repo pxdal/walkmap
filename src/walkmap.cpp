@@ -39,9 +39,20 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			// objects shouldn't have more than one bbox until they're processed, so we can just assume that the first bbox in the vector is the only one for now
 			BoundingBox* bbox2 = obj2->bboxes->at(0);
 			
+			// can these bboxes be stepped between?
+			bool steppable = nearly_less_or_eq(bbox2->position.y - bbox1->position.y, settings.stepHeight);
+			
 			// check for intersection
+			// when checking for intersection we add the player's radius to size in order to account for objects which may not technically be intersecting but would interfere with walkable space.  then, if there is an intersection, bbox1 scale is returned to normal but bbox2 scale is temporarily kept the same to account for its effect on the walkable space.
+			// however, we only do this with impassable objects to prevent the player from seeing through them by being too close.  steppable objects are fine.
+			
+			if(!steppable) resizeBbox(bbox2, bbox2->size + settings.playerRadius);
+			
 			//printf("bbox2: (p: %f, %f, %f, s: %f, %f)\n", bbox2->position.x, bbox2->position.y, bbox2->position.z, bbox2->size.x, bbox2->size.y);
-			if(!bboxIntersection(bbox1, bbox2)) continue;
+			if(!bboxIntersection(bbox1, bbox2)){ 
+				if(!steppable) resizeBbox(bbox2, bbox2->size - settings.playerRadius);
+				continue;
+			}
 			//printf("got intersect\n");
 			
 			// remove bbox1 from boxes (replaced by splitBoxes)
@@ -55,8 +66,8 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			//printf("checking adjacency\n");
 			
 			// if the distance from each obj's top faces is <= the step height, mark all split bboxes as adjacent to bbox2 (to allow the player to step up to it)
-			//printf("%d: %f, %f, %d\n", sortedByHeight->at(j), bbox2->position.y - bbox1->position.y, settings.stepHeight, nearly_less_or_eq(bbox2->position.y - bbox1->position.y, settings.stepHeight));
-			if( nearly_less_or_eq(bbox2->position.y - bbox1->position.y, settings.stepHeight) ){
+			//printf("%d: %f, %f, %d\n", sortedByHeight->at(j), bbox2->position.y - bbox1->position.y, settings.stepHeight, steppable);
+			if(steppable){
 				for(uint32_t k = 0; k < splitBoxes.size(); k++){
 					if(splitBoxes.at(k) != NULL) markAdjacent(splitBoxes.at(k), bbox2);
 				}
@@ -93,6 +104,8 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 					}
 				}*/
 			}
+			
+			if(!steppable) resizeBbox(bbox2, bbox2->size - settings.playerRadius);
 			
 			//printf("processing new bboxes\n");
 			
@@ -234,8 +247,10 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 		// recursively parse the object into bboxes
 		if(i+1 < sortedByHeight.size()) processObject(obj1, obj1->bboxes, objects, &sortedByHeight, i+1, settings);
 		
+		/*
 		// print
-		/*printf("bboxes for object %d (%f, %f, %f):\n", sortedByHeight[i], obj1->position.x, obj1->position.y, obj1->position.z);
+		printf("bboxes for object %d (%f, %f, %f):\n", sortedByHeight[i], obj1->position.x, obj1->position.y, obj1->position.z);
+		
 		
 		for(uint32_t i = 0; i < obj1->bboxes->size(); i++){
 			BoundingBox* box = obj1->bboxes->at(i);
@@ -246,8 +261,8 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 			printf("%d: pos: %f, %f, %f, size: %f, %f, numAdjacent: %d\n", i+1, box->position.x, box->position.y, box->position.z, box->size.x, box->size.y, box->adjacent->size());
 		}
 		
-		printf("\n");*/
-		
+		printf("\n");
+		*/
 		
 		// write all of the boxes to the walkmap
 		walkmapCopy.insert(walkmapCopy.end(), obj1->bboxes->begin(), obj1->bboxes->end());
@@ -451,6 +466,21 @@ bool bboxIntersection(BoundingBox* b1, BoundingBox* b2){
 void markAdjacent(BoundingBox* b1, BoundingBox* b2){
 	if(b1->adjacent != NULL) b1->adjacent->push_back(b2);
 	if(b2->adjacent != NULL) b2->adjacent->push_back(b1);
+}
+
+void moveBbox(BoundingBox* original, glm::vec3 newPosition){
+	moveAndResizeBbox(original, newPosition, original->size);
+}
+
+void resizeBbox(BoundingBox* original, glm::vec2 newSize){
+	moveAndResizeBbox(original, original->position, newSize);
+}
+
+void moveAndResizeBbox(BoundingBox* original, glm::vec3 newPosition, glm::vec2 newSize){
+	original->position = newPosition;
+	original->size = newSize;
+	
+	generateBboxCorners(original);
 }
 
 // splits an AABB into multiple AABBs around a splitter AABB
