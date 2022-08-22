@@ -8,12 +8,16 @@
 
 #include <string>
 #include <fstream>
+#include <chrono>
 
 int main(int argc, char** argv){
 	// set stdout buffer flushed without buffering, because line buffering doesn't work in msys2 terminal
 	#ifdef __MINGW64__
 		setvbuf(stdout, NULL, _IONBF, 0);
 	#endif
+	
+	// start time
+	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 	
 	// parse arguments
 	
@@ -75,7 +79,11 @@ int main(int argc, char** argv){
 	
 	out.close();
 	
-	printf("Done.\n");
+	// get time elapsed
+	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed = end-start;
+	
+	printf("Done (finished in %f seconds).\n", elapsed.count());
 	
 	return EXIT_SUCCESS;
 }
