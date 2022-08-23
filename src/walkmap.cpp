@@ -298,7 +298,7 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wa
 	const char blockClose = ']';
 
 	// write settings to buffer
-	uint32_t numSettings = 4;
+	uint32_t numSettings = WalkmapSettings::numSettings;
 	
 	buffer += settingsDelimiter;
 	buffer += blockOpen;

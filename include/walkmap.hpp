@@ -13,10 +13,13 @@
 
 // settings struct
 struct WalkmapSettings {
+	const static uint32_t numSettings = 5;
+	
 	float playerHeight;
 	float playerRadius;
 	float stepHeight;
 	float maxPlayerSpeed;
+	float heightSpeed; // not really a walkmap setting, but a world setting that makes sense to include here
 };
 
 // 2d bounding box struct
