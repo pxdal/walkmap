@@ -58,7 +58,8 @@ $(INSTALL_DIR)$(OUT): $(OBJ)
 # define obj prerequisites
 $(OBJ_DIR)utils.o: $(SRC_DIR)utils.cpp $(INCLUDE_DIR)utils.hpp
 $(OBJ_DIR)world.o: $(SRC_DIR)world.cpp $(INCLUDE_DIR)world.hpp
-$(OBJ_DIR)walkmap.o: $(SRC_DIR)walkmap.cpp $(INCLUDE_DIR)walkmap.hpp
+# I'm not quite sure why, but walkmap.o needs to be recompiled any time the Object struct is changed in world.hpp, or else the program seg faults.
+$(OBJ_DIR)walkmap.o: $(SRC_DIR)walkmap.cpp $(INCLUDE_DIR)walkmap.hpp $(INCLUDE_DIR)world.hpp
 $(OBJ_DIR)main.o: $(SRC_DIR)main.cpp
 
 # obj rule

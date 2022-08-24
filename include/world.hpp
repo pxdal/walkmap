@@ -6,6 +6,8 @@
 // includes //
 #include <string>
 #include <vector>
+#include <map>
+#include <utility>
 
 #include <glm/glm.hpp>
 
@@ -25,18 +27,20 @@ struct Object {
 	bool reachable;
 };
 
-// world blocks (hold information about blocks)
+// scene
+struct Scene {
+	std::vector<Object*>* objects;
+	
+	std::map<std::string, std::pair<glm::vec3, glm::vec3>>* modelSizes;
+};
 
-// object block
-struct ObjectBlock {
-	const static uint32_t numFloats = 9;
-	const static uint32_t numStrings = 2;
-	
-	// vector of float parameters
-	std::vector<float>* floats;
-	
-	// vector of string parameters
+// parsing block
+struct Block {
+	// vector for string parameters
 	std::vector<std::string>* strings;
+	
+	// vector for num parameters (always floats)
+	std::vector<float>* numbers;
 	
 	// index of parameter being written to
 	uint32_t parameterIndex;
@@ -50,6 +54,7 @@ struct ObjectBlock {
 Object* createEmptyObject();
 Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale);
 
-void parseWorld(const char* file, std::vector<Object*>* objects);
+Scene* parseWorld(const char* file);
+void parseWorldIntoScene(Scene* scene, const char* file);
 
 #endif

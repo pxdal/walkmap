@@ -238,6 +238,8 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 		// get this object
 		Object* obj1 = objects->at(sortedByHeight[i]);
 		
+		if(!obj1 || !obj1->bboxes) continue;
+		
 		// create a bounding box for this object if necessary
 		if(obj1->bboxes->size() <= 0){
 			BoundingBox* bbox1 = objToBbox(obj1);

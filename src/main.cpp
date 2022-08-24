@@ -34,9 +34,7 @@ int main(int argc, char** argv){
 	printf("Parsing .world file...\n");
 	
 	// load world
-	std::vector<Object*> objects;
-	
-	parseWorld(path, &objects);
+	Scene* world = parseWorld(path);
 	
 	// create walkmap from settings
 	
@@ -54,7 +52,7 @@ int main(int argc, char** argv){
 	// generate walkmap
 	std::vector<BoundingBox*> walkmap;
 	
-	generateWalkmap(settings, &objects, &walkmap);
+	generateWalkmap(settings, world->objects, &walkmap);
 	
 	printf("Writing walkmap to file...\n");
 	

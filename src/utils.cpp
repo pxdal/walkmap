@@ -54,3 +54,10 @@ bool nearly_less_or_eq(float a, float b){
 bool nearly_greater_or_eq(float a, float b){
 	return (a > b) || nearly_equal(a, b);
 }
+
+// https://stackoverflow.com/a/16575025
+bool isStringNumber(std::string& str){
+	char* p;
+	strtod(str.c_str(), &p);
+	return *p == 0;
+}

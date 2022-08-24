@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cfloat>
 
+#include <string>
+
 // allocate memory for a type and return the address for the allocated memory
 template <typename T>
 T* allocateMemoryForType(){
@@ -25,5 +27,6 @@ char* read_entire_file(const char* file);
 bool nearly_equal(float a, float b);
 bool nearly_less_or_eq(float a, float b);
 bool nearly_greater_or_eq(float a, float b);
+bool isStringNumber(std::string& str);
 
 #endif
