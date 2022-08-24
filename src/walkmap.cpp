@@ -364,7 +364,7 @@ void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wal
 		walkmap->at(i)->splitIndex = i;
 	}
 	
-	buffer = "# texture initialization blocks\n\n%[./res/textures/test/grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n";
+	buffer = "# texture initialization blocks\n\n%[./res/textures/grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
 
 	for(uint32_t i = 0; i < walkmap->size(); i++){
 		// temp buffer for block
