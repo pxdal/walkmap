@@ -319,7 +319,7 @@ void parseWorldIntoScene(Scene* scene, const char* file){
 		}
 		
 		// if a block is being parsed, pass the byte to the block parser function
-		bool done = blockCharParser(blockBuffer, byte);
+		bool done = (*blockCharParser)(blockBuffer, byte);
 		
 		if(done){
 			// parse block into scene

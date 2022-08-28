@@ -45,7 +45,7 @@ int main(int argc, char** argv){
 	settings.playerRadius = argc >= 5 ? std::stof(argv[4]) : 0.25f;
 	settings.stepHeight = argc >= 6 ? std::stof(argv[5]) : 0.4f;
 	settings.maxPlayerSpeed = argc >= 7 ? std::stof(argv[6]) : 2.f;
-	settings.heightSpeed = argc >= 8 ? std::stof(argv[7]) : 0.1f;
+	settings.heightSpeed = argc >= 8 ? std::stof(argv[7]) : 10.f;
 	
 	printf("Generating walkmap...\n");
 	
