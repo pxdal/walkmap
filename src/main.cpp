@@ -47,6 +47,12 @@ int main(int argc, char** argv){
 	settings.maxPlayerSpeed = argc >= 7 ? std::stof(argv[6]) : 2.f;
 	settings.heightSpeed = argc >= 8 ? std::stof(argv[7]) : 10.f;
 	
+	// resize all objects indiscriminately
+	for(uint32_t i = 0; i < world->objects->size(); i++){
+		world->objects->at(i)->scale.x += settings.playerRadius;
+		world->objects->at(i)->scale.z += settings.playerRadius;
+	}
+	
 	printf("Generating walkmap...\n");
 	
 	// generate walkmap

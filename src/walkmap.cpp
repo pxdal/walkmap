@@ -46,11 +46,11 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			// when checking for intersection we add the player's radius to size in order to account for objects which may not technically be intersecting but would interfere with walkable space.  then, if there is an intersection, bbox1 scale is returned to normal but bbox2 scale is temporarily kept the same to account for its effect on the walkable space.
 			// however, we only do this with impassable objects to prevent the player from seeing through them by being too close.  steppable objects are fine.
 			
-			if(!steppable) resizeBbox(bbox2, bbox2->size + settings.playerRadius);
+			//if(!steppable) resizeBbox(bbox2, bbox2->size + settings.playerRadius);
 			
 			//printf("bbox2: (p: %f, %f, %f, s: %f, %f)\n", bbox2->position.x, bbox2->position.y, bbox2->position.z, bbox2->size.x, bbox2->size.y);
 			if(!bboxIntersection(bbox1, bbox2)){ 
-				if(!steppable) resizeBbox(bbox2, bbox2->size - settings.playerRadius);
+				//if(!steppable) resizeBbox(bbox2, bbox2->size - settings.playerRadius);
 				continue;
 			}
 			//printf("got intersect\n");
@@ -105,7 +105,7 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 				}*/
 			}
 			
-			if(!steppable) resizeBbox(bbox2, bbox2->size - settings.playerRadius);
+			//if(!steppable) resizeBbox(bbox2, bbox2->size - settings.playerRadius);
 			
 			//printf("processing new bboxes\n");
 			
