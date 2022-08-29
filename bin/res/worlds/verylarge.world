@@ -1,5 +1,5 @@
-# 10001 objects.  Does not compile, as it occupies too much memory and crashes the program.  I would guess that the program could take around 7500 objects before crashing.
-# This is definitely a huge FIXME, but it's just not that important to me at the moment since the Virtual Museum will likely not be more than 500 walkable objects.
+# 10001 objects.  Compiles in about 71 seconds(!), into 65,928 boxes(!!)
+# thanks to the adjacency/eliminating unreachables, works great in runtime.
 
 &[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]
 *[cube, cube, 0, 0, 0, 1, 1, 1]

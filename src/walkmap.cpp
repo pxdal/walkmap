@@ -137,7 +137,7 @@ void pushBboxes(BoundingBox* bbox){
 	if( bbox->reachable ) return;
 	
 	// mark for non-deletion
-	bbox->reachable = true;
+	bbox->reachable = 1;
 	
 	// check for null adjacent
 	if(bbox->adjacent == NULL) return;
@@ -148,6 +148,28 @@ void pushBboxes(BoundingBox* bbox){
 	}
 	
 	// done
+}
+
+// non-recursive version of pushBboxes (this avoids stack overflow with too many bboxes)
+// this isn't all that bad efficiency wise compared to pushBboxes, so I'll probably stick to this.  the worst part is just the vector reallocation, but the lack of stack overflow makes up for it
+void pushBboxesNoRecurse(BoundingBox* bbox){
+	std::vector<BoundingBox*> parents = {bbox};
+	
+	while(parents.size() > 0){
+		BoundingBox* active = parents.back();
+		uint32_t index = parents.size()-1;
+		
+		active->reachable = true;
+		
+		if(active->adjacent){
+			for(uint32_t i = 0; i < active->adjacent->size(); i++){
+				BoundingBox* adjacent = active->adjacent->at(i);
+				if(!adjacent->reachable) parents.push_back(adjacent);
+			}
+		}
+		
+		parents.erase(parents.begin() + index);
+	}
 }
 
 void deleteUnreachable(std::vector<BoundingBox*>* bboxes){
@@ -294,8 +316,8 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 	printf(" - Determining reachable boxes...\n");
 	
 	// recurse through all bboxes indirectly adjacent to the first one
-	pushBboxes(walkmap->at(0));
-	//*walkmap = walkmapCopy;
+	//pushBboxes(walkmap->at(0));
+	pushBboxesNoRecurse(walkmap->at(0));
 	
 	// remove unreachable
 	printf(" - Removing unreachable boxes...\n");
@@ -333,7 +355,7 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wa
 	// next iterate through walkmap and assign each box an index (overriding the splitIndex value because I'm lazy)
 	// the walkmap uses indexes for adjacency information
 	for(uint32_t i = 0; i < walkmap->size(); i++){
-		walkmap->at(i)->splitIndex = i;
+		walkmap->at(i)->reachable = i;
 	}
 	
 	for(uint32_t i = 0; i < walkmap->size(); i++){
@@ -358,7 +380,7 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wa
 		
 		// add adjacent boxes
 		for(uint32_t j = 0; j < box->adjacent->size(); j++){
-			blockBuffer += std::to_string(box->adjacent->at(j)->splitIndex) + parameterDelimiter;
+			blockBuffer += std::to_string(box->adjacent->at(j)->reachable) + parameterDelimiter;
 		}
 		
 		// add block close
@@ -376,12 +398,6 @@ void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wal
 	const char blockOpen = '[';
 	const char blockClose = ']';
 
-	// iterate through walkmap and assign each box an index (overriding the splitIndex value because I'm lazy)
-	// the walkmap uses indexes for adjacency information
-	for(uint32_t i = 0; i < walkmap->size(); i++){
-		walkmap->at(i)->splitIndex = i;
-	}
-	
 	buffer = "# texture initialization blocks\n\n%[./res/textures/grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
 
 	for(uint32_t i = 0; i < walkmap->size(); i++){
@@ -434,7 +450,7 @@ BoundingBox* createBbox(glm::vec3 p, glm::vec2 s){
 	box->adjacent = new std::vector<BoundingBox*>();
 	
 	//box->splitIndex = -1;
-	box->reachable = false;
+	box->reachable = 0;
 	
 	return box;
 }
@@ -597,7 +613,7 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 			continue;
 		}
 		
-		box->splitIndex = i;
+		//box->splitIndex = i;
 		
 		// correct large sizes
 		box->size.x = std::min(original->size.x, box->size.x);

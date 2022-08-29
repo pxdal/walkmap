@@ -37,14 +37,17 @@ struct BoundingBox {
 	// if the bounding box is a result of a call to splitBbox, this int contains the position this bbox held in the newBoxes vector before being checked for adjacency (represents if it was box1, box2, etc.) (otherwise is -1)
 	// this is used to make adjacency recalculation as a result of a split faster, because bounding boxes at a certain position in a split are always adjacent to certain bounding boxes in the splitter, should the splitter be split (sorry for the tongue twister)
 	// none of the above is actually true, this was intended to be used for that purpose but ended up being used to keep track of the index when writing the walkmap to a file
-	int32_t splitIndex;
+	//int32_t splitIndex;
 	
-	// is this bbox reachable, used in pushBbox
-	bool reachable;
+	// is this bbox reachable, used in pushBboxes and deleteUnreachable to determine where the object is reached, and then afterward in walkmapToBuffer as an adjacency index
+	int32_t reachable;
+	
+	//bool reachable;
 };
 
 void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector<Object*>* scene, std::vector<uint32_t>* sortedByHeight, uint32_t heightIndex, WalkmapSettings& settings);
 void pushBboxes(BoundingBox* bbox);
+void pushBboxesNoRecurse(BoundingBox* bbox);
 void deleteUnreachable(std::vector<BoundingBox*>* bboxes);
 void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, std::vector<BoundingBox*>* finalWalkmap);
 void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, WalkmapSettings& settings);
