@@ -129,32 +129,38 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 }
 
 // push bboxes to a walkmap
-void pushBboxes(BoundingBox* bbox, std::vector<BoundingBox*>* walkmap){
+void pushBboxes(BoundingBox* bbox){
 	// ignore null
 	if(bbox == NULL) return;
 	
 	// if this bbox has already been reached, ignore
-	if( std::find(walkmap->begin(), walkmap->end(), bbox) != walkmap->end() ) return;
+	if( bbox->reachable ) return;
 	
-	// push bbox to walkmap
-	walkmap->push_back(bbox);
+	// mark for non-deletion
+	bbox->reachable = true;
 	
 	// check for null adjacent
 	if(bbox->adjacent == NULL) return;
 	
 	// iterate through adjacent boxes and push them to walkmap
 	for(uint32_t i = 0; i < bbox->adjacent->size(); i++){
-		pushBboxes(bbox->adjacent->at(i), walkmap);
+		pushBboxes(bbox->adjacent->at(i));
 	}
 	
 	// done
 }
 
+void deleteUnreachable(std::vector<BoundingBox*>* bboxes){
+	for(uint32_t i = 0; i < bboxes->size(); i++){
+		if(!bboxes->at(i)->reachable){
+			bboxes->erase( bboxes->begin() + i );
+			i--;
+		}
+	}
+}
+
 // generate walkmap from vector of objects into a vector of bounding boxes
 void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, std::vector<BoundingBox*>* walkmap){
-	// copy of walkmap to write to
-	std::vector<BoundingBox*> walkmapCopy;
-	
 	// the vectors below store indexes to the objects vector, indicating information about the object at that index
 	
 	// each object sorted by least to greatest y value
@@ -267,22 +273,34 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 		*/
 		
 		// write all of the boxes to the walkmap
-		walkmapCopy.insert(walkmapCopy.end(), obj1->bboxes->begin(), obj1->bboxes->end());
+		walkmap->insert(walkmap->end(), obj1->bboxes->begin(), obj1->bboxes->end());
 	}
 	
 	// strip null boxes
-	for(uint32_t i = 0; i < walkmapCopy.size(); i++){
-		if(walkmapCopy.at(i) == NULL){
-			walkmapCopy.erase( walkmapCopy.begin()+i );
+	for(uint32_t i = 0; i < walkmap->size(); i++){
+		if(walkmap->at(i) == NULL){
+			walkmap->erase( walkmap->begin()+i );
 			i--;
 		}
 	}
 	
+	if(walkmap->size() < 1){
+		printf("No boxes were generated.\n");
+		return;
+	}
+	
 	// eliminate unreachable boxes
-	printf(" - Eliminating unreachable boxes...\n");
+	//printf(" - Eliminating unreachable boxes...\n");
+	printf(" - Determining reachable boxes...\n");
 	
 	// recurse through all bboxes indirectly adjacent to the first one
-	pushBboxes(walkmapCopy[0], walkmap);
+	pushBboxes(walkmap->at(0));
+	//*walkmap = walkmapCopy;
+	
+	// remove unreachable
+	printf(" - Removing unreachable boxes...\n");
+	
+	deleteUnreachable(walkmap);
 }
 
 // convert walkmap (vector of BoundingBox*s) to a string to be written to a file
@@ -415,7 +433,8 @@ BoundingBox* createBbox(glm::vec3 p, glm::vec2 s){
 	
 	box->adjacent = new std::vector<BoundingBox*>();
 	
-	box->splitIndex = -1;
+	//box->splitIndex = -1;
+	box->reachable = false;
 	
 	return box;
 }
@@ -612,4 +631,8 @@ void splitBbox(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, Bound
 	
 	// done
 	return;
+}
+
+// splits bboxes into an anvil pattern (long on top and bottom, short on sides)
+void splitBboxAnvil(std::vector<BoundingBox*>* newBoxes, BoundingBox* original, BoundingBox* splitter){
 }
