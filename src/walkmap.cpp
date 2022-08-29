@@ -159,7 +159,7 @@ void pushBboxesNoRecurse(BoundingBox* bbox){
 		BoundingBox* active = parents.back();
 		uint32_t index = parents.size()-1;
 		
-		active->reachable = true;
+		active->reachable = 1;
 		
 		if(active->adjacent){
 			for(uint32_t i = 0; i < active->adjacent->size(); i++){
