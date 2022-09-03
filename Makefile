@@ -1,5 +1,5 @@
 # compiler info
-CC=gcc
+CC=g++
 
 # project info
 OUT=walkmap

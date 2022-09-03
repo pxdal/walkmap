@@ -3,12 +3,19 @@
 #include <world.hpp>
 #include <walkmap.hpp>
 
+#include <argparse/argparse.hpp>
+
 #include <cstdlib>
 #include <cstdio>
 
 #include <string>
 #include <fstream>
 #include <chrono>
+
+#define PROG_NAME "walkmap"
+#define PROG_VERSION "0.0-dev"
+
+void initializeArguments(argparse::ArgumentParser& parser);
 
 int main(int argc, char** argv){
 	// set stdout buffer flushed without buffering, because line buffering doesn't work in msys2 terminal
@@ -20,32 +27,41 @@ int main(int argc, char** argv){
 	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 	
 	// parse arguments
+	argparse::ArgumentParser argParser = argparse::ArgumentParser(PROG_NAME, PROG_VERSION);
 	
-	// should be at least one (the world file)
-	if(argc < 3){
-		printf("Error: Not enough arguments, requires at least 2 (.world file path, out path)\n");
+	initializeArguments(argParser);
+	
+	try {
+		argParser.parse_args(argc, argv);
+	} catch (const std::runtime_error& err) {
+		std::cerr << err.what() << std::endl;
+		std::cerr << argParser; // NOTE: logs help message
 		
 		exit(EXIT_FAILURE);
 	}
 	
 	// get file path
-	const char* path = argv[1];
+	std::string path = argParser.get<std::string>("--world");
 	
 	printf("Parsing .world file...\n");
 	
 	// load world
-	Scene* world = parseWorld(path);
+	Scene* world = parseWorld(path.c_str());
+	
+	if(world == NULL){
+		exit(EXIT_FAILURE);
+	}
 	
 	// create walkmap from settings
 	
 	// load settings
 	WalkmapSettings settings;
 	
-	settings.playerHeight = argc >= 4 ? std::stof(argv[3]) : 2.f;
-	settings.playerRadius = argc >= 5 ? std::stof(argv[4]) : 0.25f;
-	settings.stepHeight = argc >= 6 ? std::stof(argv[5]) : 0.4f;
-	settings.maxPlayerSpeed = argc >= 7 ? std::stof(argv[6]) : 2.f;
-	settings.heightSpeed = argc >= 8 ? std::stof(argv[7]) : 10.f;
+	settings.playerHeight = argParser.get<float>("--player-height");
+	settings.playerRadius = argParser.get<float>("--player-radius");
+	settings.stepHeight = argParser.get<float>("--player-step-height");
+	settings.maxPlayerSpeed = argParser.get<float>("--player-max-speed");
+	settings.heightSpeed = argParser.get<float>("--height-adjustment-speed");
 	
 	// resize all objects indiscriminately
 	for(uint32_t i = 0; i < world->objects->size(); i++){
@@ -63,26 +79,31 @@ int main(int argc, char** argv){
 	printf("Writing walkmap to file...\n");
 	
 	// open file
+	std::string outPath = argParser.get<std::string>("--walkmap");
 	std::ofstream out;
-	out.open(argv[2]);
+	out.open(outPath);
 	
 	// get buffer
 	std::string buffer;
-	std::string otherBuffer;
 	
 	walkmapToBuffer(buffer, &walkmap, settings);
-	walkmapToWorld(otherBuffer, &walkmap, settings);
 	
 	// pipe to file
 	out << buffer;
 	
 	out.close();
 	
-	out.open( (std::string(argv[2]) + ".world").c_str() );
+	bool generateWalkmapWorld = argParser.get<bool>("--generate-walkmap-world");
 	
-	out << otherBuffer;
+	if(generateWalkmapWorld){
+		walkmapToWorld(buffer, &walkmap, settings);
 	
-	out.close();
+		out.open( outPath + ".world" );
+	
+		out << buffer;
+	
+		out.close();
+	}
 	
 	// get time elapsed
 	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
@@ -91,4 +112,50 @@ int main(int argc, char** argv){
 	printf("Done (finished in %f seconds).\n", elapsed.count());
 	
 	return EXIT_SUCCESS;
+}
+
+void initializeArguments(argparse::ArgumentParser& parser){
+	// description
+	parser.add_description("Generate a walkmap from a .world file");
+	
+	// arguments
+	parser.add_argument("--in", "--world")
+		.help("path to a .world file to generate walkmap for")
+		.required()
+		.append();
+		
+	parser.add_argument("--out", "--walkmap")
+		.help("where to output the walkmap")
+		.required()
+		.append();
+		
+	parser.add_argument("--player-height")
+		.help("used to determine if objects will obstruct the player's walkable space or not.  overrides any value present in the .world file.")
+		.default_value<float>(2.f)
+		.scan<'g', float>();
+		
+	parser.add_argument("--player-radius")
+		.help("used to determine the distance that bounding box edges should have from unsteppable walls.  overrides any value present in the .world file.")
+		.default_value<float>(0.25f)
+		.scan<'g', float>();
+	
+	parser.add_argument("--player-step-height")
+		.help("used to determine which objects the player can step onto.  overrides any value present in the .world file.")
+		.default_value<float>(0.4f)
+		.scan<'g', float>();
+		
+	parser.add_argument("--player-max-speed")
+		.help("not really used by the walkmap generator at all, but if it's not defined in the .world file you can use this to set it to something other than default.")
+		.default_value<float>(2.f)
+		.scan<'g', float>();
+		
+	parser.add_argument("--height-adjustment-speed")
+		.help("not really used by the walkmap generator at all, but if it's not defined in the .world file you can use this to set it to something other than default.")
+		.default_value<float>(10.f)
+		.scan<'g', float>();
+		
+	parser.add_argument("--generate-walkmap-world")
+		.help("whether to generate a separate .world file representing the walkmap as a bunch of objects.")
+		.default_value(false)
+		.implicit_value(true);
 }

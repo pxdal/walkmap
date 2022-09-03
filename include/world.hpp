@@ -55,6 +55,6 @@ Object* createEmptyObject();
 Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale);
 
 Scene* parseWorld(const char* file);
-void parseWorldIntoScene(Scene* scene, const char* file);
+bool parseWorldIntoScene(Scene* scene, const char* file);
 
 #endif

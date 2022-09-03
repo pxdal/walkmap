@@ -91,7 +91,9 @@ bool blockCharParser(Block* block, char byte){
 	} else {
 		// flush parameter buffer
 		if(block->parameterBuffer->length() > 0 && isStringNumber( *block->parameterBuffer )){
-			block->numbers->push_back( std::stof(*block->parameterBuffer) );
+			float f = std::stof(*block->parameterBuffer);
+			
+			block->numbers->push_back( f );
 		} else {
 			block->strings->push_back( *block->parameterBuffer );
 		}
@@ -193,8 +195,6 @@ void objectBlockToScene(Block* block, Scene* scene){
 	
 	object->position += size * modelOffset; // apply scaling to offset as well
 	
-	//printf("obj->position: %f, %f, %f\nobj->size: %f, %f, %f\n\n", object->position.x, object->position.y, object->position.z, object->scale.x, object->scale.y, object->scale.z);
-	
 	// push to objects
 	scene->objects->push_back(object);
 }
@@ -237,19 +237,21 @@ Scene* createScene(){
 Scene* parseWorld(const char* file){
 	Scene* scene = createScene();
 	
-	parseWorldIntoScene(scene, file);
+	if(!parseWorldIntoScene(scene, file)){
+		return NULL;
+	}
 	
 	return scene;
 }
 
 // parse world into an existing scene object
-void parseWorldIntoScene(Scene* scene, const char* file){
+bool parseWorldIntoScene(Scene* scene, const char* file){
 	// file buffer
 	char* fileBuffer = read_entire_file(file);
 	
 	if(fileBuffer == NULL){
 		printf("Invalid path for world %s\n", file);
-		return;
+		return false;
 	}
 	
 	// settings
@@ -336,4 +338,6 @@ void parseWorldIntoScene(Scene* scene, const char* file){
 	free(fileBuffer);
 	
 	destroyBlock(blockBuffer);
+	
+	return true;
 }

@@ -31,7 +31,7 @@ char* read_entire_file(const char* file)
 
 // https://stackoverflow.com/a/32334103
 bool nearly_equal(float a, float b){
-	float epsilon = 128 * FLT_EPSILON;
+	float epsilon = 256 * FLT_EPSILON;
 	float abs_th = FLT_MIN;
 	
   assert(std::numeric_limits<float>::epsilon() <= epsilon);

@@ -34,6 +34,8 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			// create bounding box if necessary
 			if(obj2->bboxes->size() <= 0){
 				*obj2->bboxes = {objToBbox(obj2)};
+				
+				//printf("created bbox obj->y: %f bbox->y %f\n", obj2->position.y, obj2->bboxes->at(0)->position.y);
 			}
 			
 			// objects shouldn't have more than one bbox until they're processed, so we can just assume that the first bbox in the vector is the only one for now
@@ -41,6 +43,8 @@ void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector
 			
 			// can these bboxes be stepped between?
 			bool steppable = nearly_less_or_eq(bbox2->position.y - bbox1->position.y, settings.stepHeight);
+			
+			//if(!steppable) printf("not steppable: %f, %f, %f\n", bbox2->position.y, bbox1->position.y, bbox2->position.y - bbox1->position.y);
 			
 			// check for intersection
 			// when checking for intersection we add the player's radius to size in order to account for objects which may not technically be intersecting but would interfere with walkable space.  then, if there is an intersection, bbox1 scale is returned to normal but bbox2 scale is temporarily kept the same to account for its effect on the walkable space.
@@ -398,7 +402,7 @@ void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wal
 	const char blockOpen = '[';
 	const char blockClose = ']';
 
-	buffer = "# texture initialization blocks\n\n%[./res/textures/grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
+	buffer = "# texture initialization blocks\n\n%[grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
 
 	for(uint32_t i = 0; i < walkmap->size(); i++){
 		// temp buffer for block
