@@ -12,9 +12,6 @@
 #include <fstream>
 #include <chrono>
 
-#define PROG_NAME "walkmap"
-#define PROG_VERSION "0.0-dev"
-
 void initializeArguments(argparse::ArgumentParser& parser);
 
 int main(int argc, char** argv){
@@ -27,6 +24,7 @@ int main(int argc, char** argv){
 	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 	
 	// parse arguments
+	// macros defined in walkmap.hpp
 	argparse::ArgumentParser argParser = argparse::ArgumentParser(PROG_NAME, PROG_VERSION);
 	
 	initializeArguments(argParser);
@@ -96,6 +94,10 @@ int main(int argc, char** argv){
 	bool generateWalkmapWorld = argParser.get<bool>("--generate-walkmap-world");
 	
 	if(generateWalkmapWorld){
+		printf("Writing walkmap.world to file...\n");
+		
+		buffer = "";
+		
 		walkmapToWorld(buffer, &walkmap, settings);
 	
 		out.open( outPath + ".world" );

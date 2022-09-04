@@ -330,6 +330,7 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 }
 
 // convert walkmap (vector of BoundingBox*s) to a string to be written to a file
+// does not overwrite existing data in buffer
 void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, WalkmapSettings& settings){
 	// .walkmap files are just .world files without anything extra
 	// the block syntax for walkmap boxes is as follows:
@@ -343,6 +344,13 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wa
 	const char blockOpen = '[';
 	const char blockClose = ']';
 
+	// write version comment
+	buffer += "# Generated with ";
+	buffer += PROG_NAME;
+	buffer += " v";
+	buffer += PROG_VERSION;
+	buffer += "\n\n";
+	
 	// write settings to buffer
 	uint32_t numSettings = WalkmapSettings::numSettings;
 	
@@ -395,15 +403,25 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wa
 	}
 }
 
+// does not overwrite existing data in buffer
 void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, WalkmapSettings& settings){
 	const char delimiter = '$';
 	const char settingsDelimiter = '@';
 	const char parameterDelimiter = ',';
 	const char blockOpen = '[';
 	const char blockClose = ']';
+	
+	// write version comment
+	buffer += "# Generated with ";
+	buffer += PROG_NAME;
+	buffer += " v";
+	buffer += PROG_VERSION;
+	buffer += "\n\n";
+	
+	// write basic initialization blocks
+	buffer += "# texture initialization blocks\n\n%[grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
 
-	buffer = "# texture initialization blocks\n\n%[grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
-
+	// write bbox objects
 	for(uint32_t i = 0; i < walkmap->size(); i++){
 		// temp buffer for block
 		std::string blockBuffer;

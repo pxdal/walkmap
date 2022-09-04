@@ -11,6 +11,9 @@
 
 #include <vector>
 
+#define PROG_NAME "walkmap"
+#define PROG_VERSION "0.0-dev"
+
 // settings struct
 struct WalkmapSettings {
 	const static uint32_t numSettings = 5;
