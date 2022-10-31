@@ -61,45 +61,61 @@ int main(int argc, char** argv){
 	settings.maxPlayerSpeed = argParser.get<float>("--player-max-speed");
 	settings.heightSpeed = argParser.get<float>("--height-adjustment-speed");
 	
-	// resize all objects indiscriminately
-	for(uint32_t i = 0; i < world->objects->size(); i++){
-		world->objects->at(i)->scale.x += settings.playerRadius;
-		world->objects->at(i)->scale.z += settings.playerRadius;
-	}
-	
-	printf("Generating walkmap...\n");
-	
-	// generate walkmap
-	std::vector<BoundingBox*> walkmap;
-	
-	generateWalkmap(settings, world->objects, &walkmap);
-	
-	printf("Writing walkmap to file...\n");
-	
-	// open file
+	std::string buffer;
 	std::string outPath = argParser.get<std::string>("--walkmap");
 	std::ofstream out;
-	out.open(outPath);
 	
-	// get buffer
-	std::string buffer;
+	bool generateWalkmapArg = !argParser.get<bool>("--no-walkmap");
 	
-	walkmapToBuffer(buffer, &walkmap, settings);
+	std::vector<BoundingBox*> walkmap;
 	
-	// pipe to file
-	out << buffer;
-	
-	out.close();
+	if(generateWalkmapArg){
+		// resize all objects indiscriminately
+		for(uint32_t i = 0; i < world->objects->size(); i++){
+			world->objects->at(i)->scale.x += settings.playerRadius;
+			world->objects->at(i)->scale.z += settings.playerRadius;
+		}
+		
+		printf("Generating walkmap...\n");
+		
+		// generate walkmap
+		generateWalkmap(settings, world->objects, &walkmap);
+		
+		printf("Writing walkmap to file...\n");
+		
+		// open file
+		out.open(outPath);
+		
+		// get buffer
+		walkmapToBuffer(buffer, &walkmap, settings);
+		
+		// pipe to file
+		out << buffer;
+		
+		out.close();
+	}
 	
 	bool generateWalkmapWorld = argParser.get<bool>("--generate-walkmap-world");
+	bool noWalkmap = argParser.get<bool>("--no-walkmap");
 	
-	if(generateWalkmapWorld){
+	if(generateWalkmapWorld || noWalkmap){
 		printf("Writing walkmap.world to file...\n");
 		
 		buffer = "";
 		
+		if(noWalkmap){
+			walkmap.clear();
+			
+			// adapt walkmap into bounding boxes
+			for(uint32_t i = 0; i < world->objects->size(); i++){
+				Object* object = world->objects->at(i);
+				
+				walkmap.push_back( createBbox(object->position, glm::vec2(object->scale.x, object->scale.z) ) );
+			}
+		}
+		
 		walkmapToWorld(buffer, &walkmap, settings);
-	
+		
 		out.open( outPath + ".world" );
 	
 		out << buffer;
@@ -122,15 +138,14 @@ void initializeArguments(argparse::ArgumentParser& parser){
 	
 	// arguments
 	parser.add_argument("--in", "--world")
-		.help("path to a .world file to generate walkmap for")
+		.help("path to a .world file (or .walkmap file, if only generating a walkmap .world) to generate walkmap for")
 		.required()
 		.append();
 		
 	parser.add_argument("--out", "--walkmap")
-		.help("where to output the walkmap")
-		.required()
+		.help("where to output the walkmap + walkmap.world file")
 		.append();
-		
+	
 	parser.add_argument("--player-height")
 		.help("used to determine if objects will obstruct the player's walkable space or not.  overrides any value present in the .world file.")
 		.default_value<float>(2.f)
@@ -155,7 +170,13 @@ void initializeArguments(argparse::ArgumentParser& parser){
 		.help("not really used by the walkmap generator at all, but if it's not defined in the .world file you can use this to set it to something other than default.")
 		.default_value<float>(10.f)
 		.scan<'g', float>();
-		
+	
+	
+	parser.add_argument("--no-walkmap")
+		.help("whether or not to generate a walkmap.  only generates a walkmap world if false (regardless of --generate-walkmap-world flag)")
+		.default_value(false)
+		.implicit_value(true);
+	
 	parser.add_argument("--generate-walkmap-world")
 		.help("whether to generate a separate .world file representing the walkmap as a bunch of objects.")
 		.default_value(false)

@@ -36,9 +36,15 @@ const char commentDelimiter = '#';
 const char parameterDelimiter = ',';
 const char blockOpen = '[';
 const char blockClose = ']';
-const char objectBlockDelimiter = '$';
+const char textureBlockDelimiter = '%';
 const char vertexDataBlockDelimiter = '*';
+const char audioBlockDelimiter = '.';
+const char objectBlockDelimiter = '$';
+const char lightBlockDelimiter = '&';
 const char modelBlockDelimiter = '+';
+const char walkBoxBlockDelimiter = '~';
+const char settingsBlockDelimiter = '@';
+const char triggerBlockDelimiter = '!';
 
 // create a block
 Block* createBlock(){
@@ -224,6 +230,26 @@ void vertexDataBlockToScene(Block* block, Scene* scene){
 	(*scene->modelSizes)[vertexDataName] = std::make_pair(boundingOffset, boundingSize);
 }
 
+void walkBoxBlockToScene(Block* block, Scene* scene){
+	// load values
+	float x = block->numbers->at(0);
+	float y = block->numbers->at(1);
+	float z	= block->numbers->at(2);
+	
+	float w = block->numbers->at(3);
+	float d = block->numbers->at(4);
+	
+	glm::vec3 position = glm::vec3(x, y, z);
+	glm::vec2 size = glm::vec2(w, d);
+	
+	// create bounding box
+	// NOTE: in the original it creates a bounding box, but in this we treat it like an object because I'm lazy
+	Object* box = createObject(position, glm::vec3(0), glm::vec3(size.x, 0, size.y));
+	
+	// add to scene
+	scene->objects->push_back(box);
+}
+
 Scene* createScene(){
 	Scene* scene = allocateMemoryForType<Scene>();
 	
@@ -255,7 +281,7 @@ bool parseWorldIntoScene(Scene* scene, const char* file){
 	}
 	
 	// settings
-	char blockDelimiters[] = {objectBlockDelimiter, vertexDataBlockDelimiter, modelBlockDelimiter};
+	char blockDelimiters[] = {objectBlockDelimiter, vertexDataBlockDelimiter, modelBlockDelimiter, walkBoxBlockDelimiter};
 	
 	// control states
 	bool parsingBlock = false;
@@ -267,7 +293,7 @@ bool parseWorldIntoScene(Scene* scene, const char* file){
 	// first param = pointer to block (void* here to be valid for all pointers)
 	// second param = char to parse
 	// returns false if the block hasn't finished parsing and true if it has
-	void (*blockParsers[3])(Block*,Scene*) {objectBlockToScene, vertexDataBlockToScene, vertexDataBlockToScene};
+	void (*blockParsers[4])(Block*,Scene*) {objectBlockToScene, vertexDataBlockToScene, vertexDataBlockToScene, walkBoxBlockToScene};
 	
 	// loop through each byte
 	char byte;
