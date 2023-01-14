@@ -419,7 +419,7 @@ void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wal
 	buffer += "\n\n";
 	
 	// write basic initialization blocks
-	buffer += "# texture initialization blocks\n\n%[grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
+	buffer += "# texture initialization blocks\n\n%[./textures/grid.png, default]\n\n# vertex data initialization blocks\n\n*[cube, cube]\n\n# light blocks\n\n&[0, 0, 0,     1, 1, 1,    1, 0, 0,     0.8, 0]\n\n# bbox object blocks\n\n";
 
 	// write bbox objects
 	for(uint32_t i = 0; i < walkmap->size(); i++){

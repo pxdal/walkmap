@@ -256,6 +256,9 @@ Scene* createScene(){
 	scene->objects = new std::vector<Object*>();
 	scene->modelSizes = new std::map<std::string, std::pair<glm::vec3, glm::vec3>>();
 	
+	// fixes javascript compatibility issue
+	(*scene->modelSizes)["cube"] = std::make_pair(glm::vec3(0, 0, 0), glm::vec3(1, 1, 1));
+	
 	return scene;
 }
 
