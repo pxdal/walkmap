@@ -16,13 +16,15 @@
 
 // settings struct
 struct WalkmapSettings {
-	const static uint32_t numSettings = 5;
+	const static uint32_t numSettings = 5; // not six because generateIds does not need to be written to walkmap + it's not a float
 	
 	float playerHeight;
 	float playerRadius;
 	float stepHeight;
 	float maxPlayerSpeed;
 	float heightSpeed; // not really a walkmap setting, but a world setting that makes sense to include here
+	
+	bool generateIds;
 };
 
 // 2d bounding box struct
@@ -45,7 +47,7 @@ struct BoundingBox {
 	// is this bbox reachable, used in pushBboxes and deleteUnreachable to determine where the object is reached, and then afterward in walkmapToBuffer as an adjacency index
 	int32_t reachable;
 	
-	//bool reachable;
+	std::vector<std::string>* ids;
 };
 
 void processObject(Object* owner, std::vector<BoundingBox*>* bboxes, std::vector<Object*>* scene, std::vector<uint32_t>* sortedByHeight, uint32_t heightIndex, WalkmapSettings& settings);

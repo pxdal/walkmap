@@ -16,15 +16,21 @@ Object* createEmptyObject(){
 	obj->bboxes = new std::vector<BoundingBox*>();
 	obj->reachable = false;
 	
+	obj->ids = new std::vector<std::string>();
+	
+	obj->children = 0;
+	
 	return obj;
 }
 
-Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale){
+Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::vector<std::string>* ids){
 	Object* obj = createEmptyObject();
 	
 	obj->position = position;
 	obj->rotation = rotation;
 	obj->scale = scale;
+	
+	obj->ids->assign(ids->begin(), ids->end());
 	
 	return obj;
 }
@@ -36,6 +42,8 @@ const char commentDelimiter = '#';
 const char parameterDelimiter = ',';
 const char blockOpen = '[';
 const char blockClose = ']';
+const char idsOpen = '{';
+const char idsClose = '}';
 const char textureBlockDelimiter = '%';
 const char vertexDataBlockDelimiter = '*';
 const char audioBlockDelimiter = '.';
@@ -51,6 +59,7 @@ Block* createBlock(){
 	Block* block = allocateMemoryForType<Block>();
 	
 	// construct members
+	block->ids = new std::vector<std::string>();
 	block->strings = new std::vector<std::string>();
 	block->numbers = new std::vector<float>();
 	block->parameterBuffer = new std::string();
@@ -66,6 +75,7 @@ void emptyBlock(Block* block){
 	block->parameterBuffer->clear();
 	
 	// empty vectors
+	block->ids->clear();
 	block->strings->clear();
 	block->numbers->clear();
 	
@@ -76,6 +86,7 @@ void emptyBlock(Block* block){
 // completely deletes occupied memory
 void destroyBlock(Block* block){
 	// destruct members
+	delete block->ids;
 	delete block->strings;
 	delete block->numbers;
 	delete block->parameterBuffer;
@@ -85,33 +96,39 @@ void destroyBlock(Block* block){
 
 // block char parser
 bool blockCharParser(Block* block, char byte){
-	// ensure that block exists, create it if it doesn't
+	// ensure that block exists
 	if(block == NULL){
 		// weird problem, give up
 		return false;
 	}
 	
 	// add byte to parameter buffer if it's not equal to the parameter delimiter or the close block
-	if(byte != parameterDelimiter && byte != blockClose){
+	if(byte != blockOpen && byte != parameterDelimiter && byte != blockClose && byte != idsOpen && byte != idsClose){
 		block->parameterBuffer->push_back(byte);
-	} else {
+	} else if(byte != blockOpen && byte != idsOpen){
 		// flush parameter buffer
-		if(block->parameterBuffer->length() > 0 && isStringNumber( *block->parameterBuffer )){
-			float f = std::stof(*block->parameterBuffer);
-			
-			block->numbers->push_back( f );
-		} else {
-			block->strings->push_back( *block->parameterBuffer );
+		if(byte != idsClose){
+			if(block->parameterBuffer->length() > 0 && isStringNumber( *block->parameterBuffer )){
+				float f = std::stof(*block->parameterBuffer);
+				
+				block->numbers->push_back( f );
+			} else {
+				block->strings->push_back( *block->parameterBuffer );
+			}
 		}
-		
-		// reset parameterBuffer
-		block->parameterBuffer->clear();
 		
 		// if parameterIndex is at the maximum value, return true (done)
 		if(byte == blockClose){
 			// block is done parsing
 			return true;
 		}
+		// if ids opener is found, parse ids instead
+		else if(byte == idsClose && block->parameterBuffer->length() > 0){
+			block->ids->push_back( *block->parameterBuffer );
+		}
+		
+		// reset parameterBuffer
+		block->parameterBuffer->clear();
 		
 		// otherwise, increment parameterIndex
 		block->parameterIndex++;
@@ -153,6 +170,8 @@ void objectBlockToScene(Block* block, Scene* scene){
 	
 	// create new object
 	Object* object = createEmptyObject();
+	
+	object->ids->assign(block->ids->begin(), block->ids->end());
 	
 	// load some float values
 	for(uint32_t i = 0; i < block->numbers->size(); i++){
@@ -244,7 +263,7 @@ void walkBoxBlockToScene(Block* block, Scene* scene){
 	
 	// create bounding box
 	// NOTE: in the original it creates a bounding box, but in this we treat it like an object because I'm lazy
-	Object* box = createObject(position, glm::vec3(0), glm::vec3(size.x, 0, size.y));
+	Object* box = createObject(position, glm::vec3(0), glm::vec3(size.x, 0, size.y), new std::vector<std::string>());
 	
 	// add to scene
 	scene->objects->push_back(box);
@@ -340,9 +359,13 @@ bool parseWorldIntoScene(Scene* scene, const char* file){
 					blockParsing = i;
 					
 					// skip block open
-					byteIndex++;
+					/*while(byte != blockOpen && byte != 0){
+						byte = fileBuffer[byteIndex];
+						
+						byteIndex++;
+					}*/
 					
-					break;
+					//break;
 				}
 			}
 			

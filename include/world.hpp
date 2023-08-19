@@ -25,6 +25,10 @@ struct Object {
 	std::vector<BoundingBox*>* bboxes;
 	
 	bool reachable;
+	
+	std::vector<std::string>* ids;
+	
+	int32_t children;
 };
 
 // scene
@@ -36,6 +40,9 @@ struct Scene {
 
 // parsing block
 struct Block {
+	// vector of ids
+	std::vector<std::string>* ids;
+	
 	// vector for string parameters
 	std::vector<std::string>* strings;
 	
@@ -52,7 +59,7 @@ struct Block {
 
 // methods //
 Object* createEmptyObject();
-Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale);
+Object* createObject(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, std::vector<std::string>* ids);
 
 Scene* parseWorld(const char* file);
 bool parseWorldIntoScene(Scene* scene, const char* file);

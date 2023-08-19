@@ -60,6 +60,7 @@ int main(int argc, char** argv){
 	settings.stepHeight = argParser.get<float>("--player-step-height");
 	settings.maxPlayerSpeed = argParser.get<float>("--player-max-speed");
 	settings.heightSpeed = argParser.get<float>("--height-adjustment-speed");
+	settings.generateIds = argParser.get<bool>("--generate-walkbox-ids");
 	
 	std::string buffer;
 	std::string outPath = argParser.get<std::string>("--walkmap");
@@ -180,5 +181,10 @@ void initializeArguments(argparse::ArgumentParser& parser){
 	parser.add_argument("--generate-walkmap-world")
 		.help("whether to generate a separate .world file representing the walkmap as a bunch of objects.")
 		.default_value(false)
+		.implicit_value(true);
+		
+	parser.add_argument("--generate-walkbox-ids")
+		.help("generates ids for walkboxes if the parent object of the walkbox has an id.")
+		.default_value(true)
 		.implicit_value(true);
 }

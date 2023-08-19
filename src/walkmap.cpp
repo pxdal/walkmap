@@ -281,6 +281,25 @@ void generateWalkmap(WalkmapSettings& settings, std::vector<Object*>* objects, s
 		// recursively parse the object into bboxes
 		if(i+1 < sortedByHeight.size()) processObject(obj1, obj1->bboxes, objects, &sortedByHeight, i+1, settings);
 		
+		// give boxes ids, if desired
+		if(settings.generateIds){
+			for(uint32_t i = 0; i < obj1->bboxes->size(); i++){
+				BoundingBox* bbox = obj1->bboxes->at(i);
+				
+				if(bbox == NULL) continue;
+				
+				for(uint32_t j = 0; j < obj1->ids->size(); j++){
+					std::string id = obj1->ids->at(j);
+					
+					int32_t index = obj1->children;
+					
+					bbox->ids->push_back( id + std::to_string(index) );
+					
+					obj1->children++;
+				}
+			}
+		}
+	
 		/*
 		// print
 		printf("bboxes for object %d (%f, %f, %f):\n", sortedByHeight[i], obj1->position.x, obj1->position.y, obj1->position.z);
@@ -335,14 +354,17 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wa
 	// .walkmap files are just .world files without anything extra
 	// the block syntax for walkmap boxes is as follows:
 	/*
-		~[x,y,z, w,d]
+		~{ids}[x,y,z, w,d]
 	*/
 	
+	// TODO: this is pretty stupid
 	const char delimiter = '~';
 	const char settingsDelimiter = '@';
 	const char parameterDelimiter = ',';
 	const char blockOpen = '[';
 	const char blockClose = ']';
+	const char idsOpen = '{';
+	const char idsClose = '}';
 
 	// write version comment
 	buffer += "# Generated with ";
@@ -371,17 +393,28 @@ void walkmapToBuffer(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wa
 	}
 	
 	for(uint32_t i = 0; i < walkmap->size(); i++){
+		// get box
+		BoundingBox* box = walkmap->at(i);
+		
 		// temp buffer for block
 		std::string blockBuffer;
 		
 		// add delimiter
 		blockBuffer += delimiter;
 		
+		// add ids
+		if(box->ids->size() > 0){
+			blockBuffer += idsOpen;
+			
+			for(uint32_t j = 0; j < box->ids->size(); j++){
+				blockBuffer += box->ids->at(j) + parameterDelimiter;
+			}
+			
+			blockBuffer += idsClose;
+		}
+		
 		// add block open
 		blockBuffer += blockOpen;
-		
-		// get box
-		BoundingBox* box = walkmap->at(i);
 		
 		// add floats to block buffer
 		for(uint32_t j = 0; j < 5; j++){
@@ -410,6 +443,8 @@ void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wal
 	const char parameterDelimiter = ',';
 	const char blockOpen = '[';
 	const char blockClose = ']';
+	const char idsOpen = '{';
+	const char idsClose = '}';
 	
 	// write version comment
 	buffer += "# Generated with ";
@@ -423,17 +458,28 @@ void walkmapToWorld(std::string& buffer, std::vector<BoundingBox*>* walkmap, Wal
 
 	// write bbox objects
 	for(uint32_t i = 0; i < walkmap->size(); i++){
+		// get box
+		BoundingBox* box = walkmap->at(i);
+		
 		// temp buffer for block
 		std::string blockBuffer;
 		
 		// add delimiter
 		blockBuffer += delimiter;
 		
+		// add ids
+		if(box->ids->size() > 0){
+			blockBuffer += idsOpen;
+			
+			for(uint32_t j = 0; j < box->ids->size(); j++){
+				blockBuffer += box->ids->at(j) + parameterDelimiter;
+			}
+			
+			blockBuffer += idsClose;
+		}
+		
 		// add block open
 		blockBuffer += blockOpen;
-		
-		// get box
-		BoundingBox* box = walkmap->at(i);
 		
 		// add floats to block buffer
 		for(uint32_t j = 0; j < 3; j++){
@@ -474,6 +520,8 @@ BoundingBox* createBbox(glm::vec3 p, glm::vec2 s){
 	//box->splitIndex = -1;
 	box->reachable = 0;
 	
+	box->ids = new std::vector<std::string>();
+	
 	return box;
 }
 
@@ -500,6 +548,7 @@ void generateBboxCorners(BoundingBox* box){
 
 void destroyBbox(BoundingBox* b){
 	delete b->adjacent;
+	delete b->ids;
 	
 	free(b);
 }
